@@ -1,0 +1,27 @@
+{
+    "Country": {
+        "Spain": ["Alaclá de Henares", "Málaga", "Palma de Mallorca",
+            "Santander", "Cádiz", "Las Palmas", "Valencia",
+            "Barcelona", "Granada", "Lérida", "Santiago de Compostela",
+            "Sevilla", "Zaragoza", "Oviedo", "Madrid"
+        ],
+        "Argentina": ["Buenos Aires", "Cipolletti"],
+        "Cuba": ["La Habana"],
+        "Mexico": ["México", "Culiacán", "Mérida", "Puebla", "Guadalajara", "Tijuana", "Mexicali"],
+        "Colombia": ["Tunja", "Medellín", "Monterrey", "Pereira", "Cali",
+            "Valledupar", "Barranquilla", "Cartagena de Indias", "Bogotá"
+        ],
+        "Paraguay": ["Asunción"],
+        "Chile": ["Santiago de Chile", "Valparaíso"],
+        "Uruguay": ["Montevideo"],
+        "Venezuela": ["Caracas", "Mérida"],
+        "Peru": ["Lima"],
+        "USA": ["Nueva York"],
+        "Ecuador": ["Quito"],
+        "Puerto Rico": ["San Juan de Puerto Rico"],
+        "Guatemala": ["Guatemala"]
+    },
+    "Sex": ["Hombre", "Mujer"],
+    "Age": ["Grupo 1", "Grupo 2", "Grupo 3"],
+    "Education": ["Alto", "Medio", "Bajo"]
+}
