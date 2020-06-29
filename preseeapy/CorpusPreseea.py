@@ -3,7 +3,11 @@ import json
 import csv
 import itertools as it
 from bs4 import BeautifulSoup
-
+import scrapy
+from scrapy.signalmanager import dispatcher
+from scrapy.crawler import CrawlerProcess
+from scrapy import signals
+from preseeaspider.spiders.preseeabot import PreseeabotSpider
 
 class PRESEEA(Corpus):
     """This class describes the PRESEEA Corpus and enables
@@ -13,15 +17,21 @@ class PRESEEA(Corpus):
         Corpus (class): General Corupus description
     """
 
-    def __init__(self):
+    def __init__(self, search_phrase=""):
         """Generate a PRESEEA Corpus instance
+
+        Args:
+            search_phrase (str, optional): Phrase to search 
+                within corpus database. Defaults to "".
         """
         super().__init__('PRESEEA')
+
+        # Open PRESEEA configuration file
         with open('preseea.json', 'r') as file:
             self._feature_list = json.load(file)
 
         self.city_list = self.get_all_cities()
-        self._search_phrase = ""
+        self._search_phrase = search_phrase
 
     def set_search_phrase(self, phrase: str):
         """Set phrase to be searched within the Corus
@@ -29,6 +39,10 @@ class PRESEEA(Corpus):
         Args:
             phrase (str): Complete phrase with spaces e.g.
         """
+        if type(phrase) is not str:
+            raise ValueError('Phrase has to be of type string!')
+        if any(umlaut in phrase for umlaut in ['ä', 'ö']):
+            raise Warning('Spanish phrases should not contain umlauts')
 
         self._search_phrase = phrase
 
@@ -38,20 +52,26 @@ class PRESEEA(Corpus):
         Returns:
             list: List of strings with phrases containing searched phrase
         """
-        # with open("example2.html") as file: 
-        #     test = file.read()
-        # test_result = BeautifulSoup(test, 'html.parser')
+        process = CrawlerProcess({
+            'USER_AGENT': "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/55.0.2883.75 Safari/537.36",
+            'DOWNLOAD_TIMEOUT':100,
+            'REDIRECT_ENABLED':False,
+            'SPIDER_MIDDLEWARES' : {
+                'scrapy.spidermiddlewares.httperror.HttpErrorMiddleware':True
+            }
+        })
 
-        # result = self.get_results()
-        # span_list = result.find_all('span')
+        results = []
 
-        # # Get text matches
-        # data_list = result.find_all('span', id=lambda x: x and x.endswith('TextMatch'))
-        # text_list = [data.text for data in data_list]
+        def crawler_results(signal, sender, item, response, spider):
+            results.append(item)
 
-        text_list = ['dummy']
+        dispatcher.connect(crawler_results, signal=signals.item_passed)
 
-        return text_list
+        process.crawl(PreseeabotSpider)
+        test = process.start()
+
+        return results
 
     def write_csv(self, file_name: str):
         """Write current phrases' search results into csv
