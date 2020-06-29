@@ -81,10 +81,12 @@ class PreseeabotSpider(scrapy.Spider):
                              callback=self.parse_form)
 
     def parse_results(self, response):
+        print(response)
+        print(type(response))
         # Get table of responses from POST response
         phrase_table = response.css("table.preseea_grid")
 
-        phrase_list = phrase_table.css("tr span").extract()# [0].split('<span id=')
+        phrase_list = phrase_table.css("tr span").extract()
         phrase_list = [element for element in phrase_list if ('<span id=' and 'TextMatch') in element]
 
         NUM_ELEMENTS_PER_ITEM = 5
