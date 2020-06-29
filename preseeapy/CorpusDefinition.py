@@ -11,42 +11,21 @@ class Corpus:
     def __init__(self, name: str):
         if name not in AVAILABLE_CORPI:
             raise ValueError('Corpus not available! Select from: {}'.format(AVAILABLE_CORPI))
-        
+
         # Set class properties
         self._corpus_name = name
         if self._corpus_name == 'PRESEEA':
             self._address = 'https://preseea.linguas.net/Corpus.aspx'
-        
+
         self._feature_list = []
         self._city = ""
         self._gender = ""
         self._age = ""
         self._education = ""
 
-        self._headers = headers = {
-                    'authority': 'preseea.linguas.net',
-                    'cache-control': 'max-age=0',
-                    'upgrade-insecure-requests': '1',
-                    'origin': 'https://preseea.linguas.net',
-                    'content-type': 'multipart/form-data; boundary=----WebKitFormBoundary0KA5113AdN33RDmf',
-                    'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.61 Safari/537.36',
-                    'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
-                    'sec-fetch-site': 'same-origin',
-                    'sec-fetch-mode': 'navigate',
-                    'sec-fetch-user': '?1',
-                    'sec-fetch-dest': 'document',
-                    'referer': 'https://preseea.linguas.net/Corpus.aspx',
-                    'accept-language': 'de-DE,de;q=0.9,en-US;q=0.8,en;q=0.7',
-                    'cookie': '.ASPXANONYMOUS=FZLZtxBx1gEkAAAAY2VlNzIxYzQtYmQ0MC00ZjY5LTk0ZDItMTRkMTk5YzIxOGNk0; 51D=3155378975999999999; language=es-ES',
-                    }
-
-        # Request workaround
-        with open('example.txt', 'r') as text:
-            self._data = text.read()
-    
     def get_corpus_name(self):
         return self._corpus_name
-    
+
     def set_city(self, name: str):
         """Set Corpus' instance city by its name and check beforehand
 
@@ -56,7 +35,7 @@ class Corpus:
         city_list = self.get_all_cities()
         if name in city_list:
             self._city = name
-    
+
     def set_sex(self, name: str):
         """Set Corpus' instance gender by its name and check beforehand
 
@@ -66,7 +45,7 @@ class Corpus:
         sex_list = self._feature_list['Sex']
         if name in sex_list:
             self._gender = name
-    
+
     def set_age(self, name: str):
         """Set Corpus' instance age by its name and check beforehand
 
@@ -76,7 +55,7 @@ class Corpus:
         age_list = self._feature_list['Age']
         if name in age_list:
             self._age = name
-    
+
     def set_education(self, name: str):
         """Set Corpus' instance education by its name and check beforehand
 
@@ -95,8 +74,8 @@ class Corpus:
 
     def get_filter(self):
         city = 'City: {}'.format(self._city)
-        gender = 'Gender: {}'.format(self._gender) 
-        age = 'Age: {}'.format(self._age) 
+        gender = 'Gender: {}'.format(self._gender)
+        age = 'Age: {}'.format(self._age)
         education = 'Education: {}'.format(self._education)
 
         return '{}, {}, {}, {}'.format(city, gender, age, education)
@@ -111,7 +90,6 @@ class Corpus:
 
         return countries
 
-    
     def get_all_cities(self) -> list:
         """Return all the available cities in the Corpus
 
@@ -126,7 +104,6 @@ class Corpus:
         city_list = list(it.chain.from_iterable(temporary_city_list))
 
         return city_list
-
 
     def _check_cities(self, sample: str) -> list:
         """Check if samples are available for that feature
@@ -148,7 +125,6 @@ class Corpus:
 
         return feature_list
 
-
     def get_cities(self, country: str) -> list:
         """Return the cities available in the given country
 
@@ -161,7 +137,7 @@ class Corpus:
         city_list = self._check_cities(country)
 
         return city_list
-    
+
     def get_number_cities(self, country: str) -> int:
         """Return the number of available cities per country
 
@@ -187,12 +163,50 @@ class Corpus:
 
         return number_cities
 
-    def get_results(self):
-        response = requests.post(self._address, headers=self._headers, data=self._data)
-        response = urllib.request.urlopen(self._address)
-        req = urllib.request.Request(self._address, data=data, headers=self._headers)
+    def prepare_post_data(self, initial: bool) -> dict:
+        """This functions prepares a raw text file for PRESEEA post request
 
-        content = response.read()
+        Returns:
+            dict: post data as dictionary
+        """
+
+        with open('test.html') as raw_request:
+            content = raw_request.read()
+            name_list = content.split("form-data; name=")[1:]
+
+            data = {}
+            # For ASP.NET pages, primarily retrieve __VIEWSTATE
+            if initial:
+                name_list = name_list[8:]
+
+            for name in name_list:
+                temporary_list = name.split("\\r\\n")
+                name = temporary_list[0][1:-1]
+                value = temporary_list[2]
+
+                data[name] = value
+
+        if not initial:
+            with open('requestdata.txt') as previous_request:
+                content = previous_request.read()
+                data["__VIEWSTATE"] =  content.split('name="__VIEWSTATE" id="__VIEWSTATE" value="')[1].split(' />\\r\\n</div>\\r\\n\\r\\n<script')[0][:-1]
+                data["__EVENTVALIDATION"] = content.split('name="__EVENTVALIDATION" id="__EVENTVALIDATION" value="')[1].split(' />\\r\\n</div><script')[0][:-1]
+
+        return data
+
+    def get_results(self):
+        values_inital = self.prepare_post_data(initial=True)
+        initial_response = requests.post(self._address, params=values_inital, headers=self._headers)
+        with open("requestdata.txt", "w") as f:
+            # Extract curl request here into text file!!!!!!!!
+            f.write(str(initial_response.content))
+
+        values = self.prepare_post_data(initial=False)
+        session = requests.Session()
+        response = session.post(self._address, params=values, headers=self._headers)
+        with open("requests_results.html", "w") as f:
+            f.write(response.content.decode("utf-8") )
+
 
         # TODO: Response does not contain whished data
         soup = BeautifulSoup(content, 'lxml')
