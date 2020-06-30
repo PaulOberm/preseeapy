@@ -23,5 +23,29 @@
     },
     "Sex": ["Hombre", "Mujer"],
     "Age": ["Grupo 1", "Grupo 2", "Grupo 3"],
-    "Education": ["Alto", "Medio", "Bajo"]
+    "Education": ["Alto", "Medio", "Bajo"],
+    "City": {
+        "Pereira": 1,
+        "Alaclá de Henares": 2,
+        "Barranquilla": 3,
+        "Cali": 4,
+        "Capital de Guatemala": 5,
+        "Caracas": 6,
+        "Granada": 7,
+        "Guadalajara": 8,
+        "La Habana": 9,
+        "Lima": 10,
+        "Madrid": 11,
+        "Málaga": 12,
+        "Medellín": 13,
+        "Mexicali": 14,
+        "México, D. F.": 15,
+        "Monterrey": 16,
+        "Montevideo": 17,
+        "Santander": 19,
+        "Santiago": 20,
+        "Santiago de Compostela": 21,
+        "Sevilla": 22,
+        "Valencia": 23
+    }
 }

@@ -12,4 +12,4 @@ corpus_preseea.set_search_phrase('hago ')
 test_list = corpus_preseea.retrieve_phrase_data()
 
 # Write data with stats into .csv file
-corpus_preseea.write_csv("example.csv")
+corpus_preseea.write_csv(data=test_list, file_name="example.csv")

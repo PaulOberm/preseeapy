@@ -1,6 +1,7 @@
 from CorpusDefinition import Corpus
 import json
 import csv
+import os
 import itertools as it
 from bs4 import BeautifulSoup
 import scrapy
@@ -28,7 +29,7 @@ class PRESEEA(Corpus):
 
         # Open PRESEEA configuration file
         with open('preseea.json', 'r') as file:
-            self._feature_list = json.load(file)
+            self._feature_dict = json.load(file)
 
         self.city_list = self.get_all_cities()
         self._search_phrase = search_phrase
@@ -73,32 +74,43 @@ class PRESEEA(Corpus):
 
         return results
 
-    def write_csv(self, file_name: str):
+    def write_csv(self, data: list, file_name: str):
         """Write current phrases' search results into csv
 
         Args:
+            data (dict): retrieved data as dictionary
             file_name (str): csv file name
         """
-        # # Get data to write
-        # phrases_list = self.retrieve_phrase_data("example2.html")
+        for filter_key in ['text', 'date', 'country']:
+            # Check first entry for necessary filters
+            if filter_key not in list(data[0].keys()):
+                raise KeyError('Unknown dictionary key: \
+                                {} in crawled results!'.format(filter_key))
 
-        # # Write into csv file
-        # with open(file_name, 'w', newline='') as file:
-        #     writer = csv.writer(file)
+        if '.csv' not in file_name:
+            file_name += '.csv'
 
-        #     # Write meta data
-        #     writer.writerow(["Corpus", self._corpus_name])
-        #     wrtier.writerow(["\n"])
-        #     writer.writerow(["Filter"])
-        #     writer.writerow(["City", self._city])
-        #     writer.writerow(["Sex", self._gender])
-        #     writer.writerow(["Age", self._age])
-        #     writer.writerow(["Education", self._education])
-        #     writer.writerow(["Index", "Phrase"])
-        #     wrtier.writerow(["\n"])
+        # Write into csv file
+        with open(file_name, 'w', newline='') as file:
+            writer = csv.writer(file)
 
-        #     # Write data
-        #     for idx, phrase in enumerate(phrases_list):
-        #         writer.writerow([idx, phrase])
+            # Write meta data
+            keys_list = list(self._feature_dict.keys())
+            writer.writerow(["Corpus", self._corpus_name])
+            writer.writerow(["\n"])
+            writer.writerow(["Filter:"])
+            writer.writerow([keys_list[1], self._gender])
+            writer.writerow([keys_list[2], self._age])
+            writer.writerow([keys_list[3], self._education])
+            writer.writerow([keys_list[4], self._city])
+            writer.writerow(["Index", "Phrase"])
+            writer.writerow(["\n"])
 
-        pass
+            # Write data
+            for idx, phrase in enumerate(data):
+                writer.writerow([idx,
+                                 phrase['text'],
+                                 phrase['date'],
+                                 phrase['country']])
+
+        return os.getcwd() + '/' + file_name

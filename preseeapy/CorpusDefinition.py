@@ -17,7 +17,7 @@ class Corpus:
         if self._corpus_name == 'PRESEEA':
             self._address = 'https://preseea.linguas.net/Corpus.aspx'
 
-        self._feature_list = []
+        self._feature_dict = []
         self._city = ""
         self._gender = ""
         self._age = ""
@@ -42,7 +42,7 @@ class Corpus:
         Args:
             name (str): Name of the gender the corpus should be filtered on
         """
-        sex_list = self._feature_list['Sex']
+        sex_list = self._feature_dict['Sex']
         if name in sex_list:
             self._gender = name
 
@@ -52,7 +52,7 @@ class Corpus:
         Args:
             name (str): Name of the age the corpus should be filtered on
         """
-        age_list = self._feature_list['Age']
+        age_list = self._feature_dict['Age']
         if name in age_list:
             self._age = name
 
@@ -62,7 +62,7 @@ class Corpus:
         Args:
             name (str): Name of the education the corpus should be filtered on
         """
-        education_list = self._feature_list['Education']
+        education_list = self._feature_dict['Education']
         if name in education_list:
             self._education = name
 
@@ -86,7 +86,7 @@ class Corpus:
         Returns:
             list: List of strings of the countries
         """
-        countries = [country for country in self._feature_list["Country"].keys()]
+        countries = [country for country in self._feature_dict["Country"].keys()]
 
         return countries
 
@@ -99,7 +99,7 @@ class Corpus:
 
         temporary_city_list = []
         for country in self.get_corpus_countries():
-            temporary_city_list.append(self._feature_list["Country"][country])
+            temporary_city_list.append(self._feature_dict["Country"][country])
 
         city_list = list(it.chain.from_iterable(temporary_city_list))
 
@@ -119,7 +119,7 @@ class Corpus:
 
         # Compare demanded sample with the available feature list
         try:
-            feature_list = self._feature_list["Country"][sample]
+            feature_list = self._feature_dict["Country"][sample]
         except KeyError:
             raise KeyError('{} not available in Corpus'.format(sample))
 
