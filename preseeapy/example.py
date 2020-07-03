@@ -4,9 +4,9 @@ from CorpusPreseea import PRESEEA
 corpus_preseea = PRESEEA()
 
 # Define search issue with filters and phrase
-corpus_preseea.set_filter(city="Pereira", gender="Mujer",
-                          age="Grupo 1", education="Medio")
-corpus_preseea.set_search_phrase('hago ')
+corpus_preseea.set_filter(city="Pereira", gender="male",
+                          age="young", education="low")
+corpus_preseea.set_search_phrase('le ')
 
 # Get data via scrapy framework as API
 test_list = corpus_preseea.retrieve_phrase_data()

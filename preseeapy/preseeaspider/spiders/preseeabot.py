@@ -9,25 +9,70 @@ class PreseeabotSpider(scrapy.Spider):
     FIRST_NAME = "x"
     SURNAME = "x"
     INSTITUTION = "x"
-    _education_key = "dnn$ctr520$TranscriptionQuery$chkFtStudyLevel$1"
-    _age_key = "dnn$ctr520$TranscriptionQuery$chkFtAgeGroup$2"
 
     allowed_domains = ['preseea.linguas.net']
     start_urls = ['https://preseea.linguas.net/Corpus.aspx']
-    _search_phrase = 'hago '
 
-    # def __init__(self, phrase: str,
-    #              city: str, gender: str,
-    #              education: str, age: str):
-    #     super().__init__()
+    # Open PRESEEA configuration file
+    with open('preseea.json', 'r') as file:
+        _feature_dict = json.load(file)
 
-    #     self._search_phrase = phrase
-    #     self._city_key = self.map_to_city_key(city)
-    #     self._gender_key = self.map_to_gender_key(city)
-    #     self._education_key = self.map_to_education_key(city)
-    #     self._age_key = self.map_to_age_key(city)
+    def __init__(self,
+                 phrase: str,
+                 city: str,
+                 gender: str,
+                 education: str, age: str):
+        super().__init__()
 
-    def map_to_age_key(age: str) -> str:
+        self._search_phrase = phrase
+        self._city_key = self.map_to_city_key(city)
+        self._gender_key = self.map_to_gender_key(gender)
+        self._education_key = self.map_to_education_key(education)
+        self._age_key = self.map_to_age_key(age)
+
+    def map_to_city_key(self, city: str) -> str:
+        """Map a city or location class to the correct key for the PRESEEA webpage
+
+        Args:
+            gender (str): City/Locations classes
+                in the PRESEEA corpus (male, female)
+
+        Returns:
+            str: City/Location class key in the HTML webpage
+        """
+        cities_dict = self._feature_dict['City']
+        try:
+            city_class_number = cities_dict[city]
+        except KeyError as e:
+            raise KeyError(e)
+
+        # Create city class from correctly listed
+        # configuration file preseea.json
+        default_city_class_string = "dnn_ctr520_TranscriptionQuery_chkFtCity_"
+        city_class = default_city_class_string + str(city_class_number)
+
+        return city_class
+
+    def map_to_gender_key(self, gender: str) -> str:
+        """Map a gender class to the correct key for the PRESEEA webpage
+
+        Args:
+            gender (str): Gender classes in the PRESEEA corpus (male, female)
+
+        Returns:
+            str: Gender class key in the HTML webpage
+        """
+        if gender == 'male':
+            gender_class = "dnn_ctr520_TranscriptionQuery_chkFtSex_1"
+        elif gender == 'female':
+            gender_class = "dnn_ctr520_TranscriptionQuery_chkFtSex_2"
+        else:
+            raise ValueError('Unkown gender class {}! \
+                Available classes: male, female.'.format(gender))
+
+        return gender_class
+
+    def map_to_age_key(self, age: str) -> str:
         """Map an age class to the correct key for the PRESEEA webpage
 
         Args:
@@ -44,29 +89,29 @@ class PreseeabotSpider(scrapy.Spider):
         elif age == 'old':
             age_class = "dnn$ctr520$TranscriptionQuery$chkFtAgeGroup$3"
         else:
-            return ValueError('Unkown age class! \
+            raise ValueError('Unkown age class! \
                 Available classes: young, middle, old.')
 
         return age_class
 
-    def map_to_education_key(educaton: str) -> str:
-        """Map an educaton class to the correct key for the PRESEEA webpage
+    def map_to_education_key(self, education: str) -> str:
+        """Map an education class to the correct key for the PRESEEA webpage
 
         Args:
-            educaton (str): Education classes (low, medium, high)
+            education (str): Education classes (low, medium, high)
 
         Returns:
             str: Education class key in HTML webpage
         """
 
-        if educaton == 'low':
+        if education == 'high':
             education_class = "dnn$ctr520$TranscriptionQuery$chkFtStudyLevel$1"
-        elif educaton == 'medium':
+        elif education == 'medium':
             education_class = "dnn$ctr520$TranscriptionQuery$chkFtStudyLevel$2"
-        elif educaton == 'high':
+        elif education == 'low':
             education_class = "dnn$ctr520$TranscriptionQuery$chkFtStudyLevel$3"
         else:
-            return ValueError('Unkown education class! \
+            raise ValueError('Unkown education class! \
                 Available classes: low, medium, high.')
 
         return education_class
@@ -81,8 +126,6 @@ class PreseeabotSpider(scrapy.Spider):
                              callback=self.parse_form)
 
     def parse_results(self, response):
-        print(response)
-        print(type(response))
         # Get table of responses from POST response
         phrase_table = response.css("table.preseea_grid")
 
@@ -170,9 +213,3 @@ class PreseeabotSpider(scrapy.Spider):
         yield scrapy.FormRequest(url=self.start_urls[0],
                                  formdata=formdata,
                                  callback=self.parse_results)
-
-# instance = PreseeabotSpider()
-
-# test = instance.start_requests()
-
-# print('test')

@@ -35,6 +35,9 @@ class Corpus:
         city_list = self.get_all_cities()
         if name in city_list:
             self._city = name
+        else:
+            raise ValueError('Given location or city: \
+                {} is not defined'.format(name))
 
     def set_sex(self, name: str):
         """Set Corpus' instance gender by its name and check beforehand
@@ -44,6 +47,9 @@ class Corpus:
         """
         sex_list = self._feature_dict['Sex']
         if name in sex_list:
+            self._gender = name
+        else:
+            Warning('Gender not in accordance with corpus')
             self._gender = name
 
     def set_age(self, name: str):
@@ -55,6 +61,9 @@ class Corpus:
         age_list = self._feature_dict['Age']
         if name in age_list:
             self._age = name
+        else:
+            Warning('Age definition not in accordance with corpus')
+            self._age = name
 
     def set_education(self, name: str):
         """Set Corpus' instance education by its name and check beforehand
@@ -64,6 +73,9 @@ class Corpus:
         """
         education_list = self._feature_dict['Education']
         if name in education_list:
+            self._education = name
+        else:
+            Warning('Education definition not in accordance with corpus')
             self._education = name
 
     def set_filter(self, city: str, gender: str, age: str, education: str):
@@ -114,8 +126,6 @@ class Corpus:
         Returns:
             list: List of strings with available samples
         """
-        # Get available samples for feature
-        sample_list = self.get_corpus_countries()
 
         # Compare demanded sample with the available feature list
         try:

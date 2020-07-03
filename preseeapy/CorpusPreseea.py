@@ -2,13 +2,11 @@ from CorpusDefinition import Corpus
 import json
 import csv
 import os
-import itertools as it
-from bs4 import BeautifulSoup
-import scrapy
 from scrapy.signalmanager import dispatcher
 from scrapy.crawler import CrawlerProcess
 from scrapy import signals
 from preseeaspider.spiders.preseeabot import PreseeabotSpider
+
 
 class PRESEEA(Corpus):
     """This class describes the PRESEEA Corpus and enables
@@ -22,7 +20,7 @@ class PRESEEA(Corpus):
         """Generate a PRESEEA Corpus instance
 
         Args:
-            search_phrase (str, optional): Phrase to search 
+            search_phrase (str, optional): Phrase to search
                 within corpus database. Defaults to "".
         """
         super().__init__('PRESEEA')
@@ -53,24 +51,35 @@ class PRESEEA(Corpus):
         Returns:
             list: List of strings with phrases containing searched phrase
         """
+        # Set up a crawler process to use a spider
         process = CrawlerProcess({
-            'USER_AGENT': "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/55.0.2883.75 Safari/537.36",
-            'DOWNLOAD_TIMEOUT':100,
-            'REDIRECT_ENABLED':False,
-            'SPIDER_MIDDLEWARES' : {
-                'scrapy.spidermiddlewares.httperror.HttpErrorMiddleware':True
+            'USER_AGENT': "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 \
+                           (KHTML, like Gecko) Chrome/55.0.2883.75 \
+                           Safari/537.36",
+            'DOWNLOAD_TIMEOUT': 100,
+            'REDIRECT_ENABLED': False,
+            'SPIDER_MIDDLEWARES': {
+                'scrapy.spidermiddlewares.httperror.HttpErrorMiddleware': True
             }
         })
-
+        # Save crawled results iteratively within a list
         results = []
 
+        # Signal process function definition
         def crawler_results(signal, sender, item, response, spider):
             results.append(item)
 
+        # Middleware between downloader and spider
         dispatcher.connect(crawler_results, signal=signals.item_passed)
 
-        process.crawl(PreseeabotSpider)
-        test = process.start()
+        # Apply requests from spider - Add arguments to initialize the spider
+        process.crawl(PreseeabotSpider,
+                      self._search_phrase,
+                      self._city,
+                      self._gender,
+                      self._education,
+                      self._age)
+        _ = process.start()
 
         return results
 
@@ -81,6 +90,9 @@ class PRESEEA(Corpus):
             data (dict): retrieved data as dictionary
             file_name (str): csv file name
         """
+        if len(data) == 0:
+            return None
+
         for filter_key in ['text', 'date', 'country']:
             # Check first entry for necessary filters
             if filter_key not in list(data[0].keys()):

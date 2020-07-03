@@ -10,6 +10,10 @@ class TestCorpusPreseeaClass(unittest.TestCase):
     def test_get_corpus_name(self):
         self.assertEqual(self.corpus_1.get_corpus_name(), 'PRESEEA')
 
+    def test_set_search_phrase(self):
+        self.assertRaises(Warning, self.corpus_1.set_search_phrase, 'täst')
+        self.assertRaises(ValueError, self.corpus_1.set_search_phrase, 5)
+
     def test_get_cities(self):
         self.assertIn('Madrid', self.corpus_1.get_cities('Spain'),
                       'Incorrect corpus. A spanish \
