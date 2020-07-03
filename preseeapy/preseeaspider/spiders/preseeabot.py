@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import json
 import scrapy
+import os
 from scrapy.shell import inspect_response
 
 
@@ -13,16 +14,16 @@ class PreseeabotSpider(scrapy.Spider):
     allowed_domains = ['preseea.linguas.net']
     start_urls = ['https://preseea.linguas.net/Corpus.aspx']
 
-    # Open PRESEEA configuration file
-    with open('preseea.json', 'r') as file:
-        _feature_dict = json.load(file)
-
     def __init__(self,
                  phrase: str,
                  city: str,
                  gender: str,
                  education: str, age: str):
         super().__init__()
+
+        # Open PRESEEA configuration file
+        with open('preseeapy/preseea.json', 'r') as file:
+            self._feature_dict = json.load(file)
 
         self._search_phrase = phrase
         self._city_key = self.map_to_city_key(city)

@@ -1,11 +1,11 @@
-from CorpusDefinition import Corpus
+from .CorpusDefinition import Corpus
 import json
 import csv
 import os
 from scrapy.signalmanager import dispatcher
 from scrapy.crawler import CrawlerProcess
 from scrapy import signals
-from preseeaspider.spiders.preseeabot import PreseeabotSpider
+from .preseeaspider.spiders.preseeabot import PreseeabotSpider
 
 
 class PRESEEA(Corpus):
@@ -26,7 +26,7 @@ class PRESEEA(Corpus):
         super().__init__('PRESEEA')
 
         # Open PRESEEA configuration file
-        with open('preseea.json', 'r') as file:
+        with open('preseeapy/preseea.json', 'r') as file:
             self._feature_dict = json.load(file)
 
         self.city_list = self.get_all_cities()
