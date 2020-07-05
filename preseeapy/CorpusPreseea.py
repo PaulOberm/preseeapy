@@ -34,6 +34,8 @@ class PRESEEA(Corpus):
         self._gender = ""
         self._age = ""
         self._education = ""
+        
+        self.SET_PROCESS = False
 
         self.city_list = self.get_all_cities()
         self._search_phrase = search_phrase
@@ -79,15 +81,43 @@ class PRESEEA(Corpus):
         dispatcher.connect(crawler_results, signal=signals.item_passed)
 
         # Apply requests from spider - Add arguments to initialize the spider
-        process.crawl(PreseeabotSpider,
-                      self._search_phrase,
-                      self._city,
-                      self._gender,
-                      self._education,
-                      self._age)
-        _ = process.start()
+        if self._check_filter_parameters():
+            process.crawl(PreseeabotSpider,
+                          self._search_phrase,
+                          self._city,
+                          self._gender,
+                          self._education,
+                          self._age)
+            
+            if not self.SET_PROCESS:
+                _ = process.start()
+                self.SET_PROCESS = True
 
         return results
+
+    def _check_filter_parameters(self) -> bool:
+        """Check the given filter parameters for a POST request.
+
+        Returns:
+            bool: Return true if POST request is possible
+        """
+        check_filters = True
+
+        # Check all filters for availability
+        if self._city == "":
+            check_filters = False
+        if self._gender == "":
+            check_filters = False
+        if self._education == "":
+            check_filters = False
+        if self._age == "":
+            check_filters = False
+        if self._search_phrase == "":
+            check_filters = False
+
+        print('Parameters checked: {}'.format(str(check_filters)))
+
+        return check_filters
 
     def write_csv(self, data: list, file_name: str):
         """Write current phrases' search results into csv
@@ -122,7 +152,10 @@ class PRESEEA(Corpus):
             writer.writerow([keys_list[3], self._education])
             writer.writerow([keys_list[4], self._city])
             writer.writerow(["Phrase", self._search_phrase])
+            writer.writerow(["\n"])
+            writer.writerow(["Found number of entries", len(data)])
             writer.writerow(["Index", "Text"])
+            writer.writerow(["\n"])
             writer.writerow(["\n"])
 
             # Write data
@@ -141,12 +174,16 @@ class PRESEEA(Corpus):
         Args:
             name (str): Name of the city the corpus should be filtered on
         """
-        city_list = self.get_all_cities()
+        # city_list = self.get_all_cities()
+        city_list = list(self._feature_dict['City'].keys())
         if name in city_list:
             self._city = name
+        elif name == "all":
+            self._city = "all"
         else:
-            raise ValueError('Given location or city: \
+            Warning('Given location or city: \
                 {} is not defined'.format(name))
+            self._city = ""
 
     def set_sex(self, name: str):
         """Set Corpus' instance gender by its name and check beforehand
@@ -157,9 +194,11 @@ class PRESEEA(Corpus):
         sex_list = self._feature_dict['Sex']
         if name in sex_list:
             self._gender = name
+        elif name == "all":
+            self._gender = "all"
         else:
             Warning('Gender not in accordance with corpus')
-            self._gender = name
+            self._gender = ""
 
     def set_age(self, name: str):
         """Set Corpus' instance age by its name and check beforehand
@@ -170,9 +209,11 @@ class PRESEEA(Corpus):
         age_list = self._feature_dict['Age']
         if name in age_list:
             self._age = name
+        elif name == "all":
+            self._age = "all"
         else:
             Warning('Age definition not in accordance with corpus')
-            self._age = name
+            self._age = ""
 
     def set_education(self, name: str):
         """Set Corpus' instance education by its name and check beforehand
@@ -183,11 +224,14 @@ class PRESEEA(Corpus):
         education_list = self._feature_dict['Education']
         if name in education_list:
             self._education = name
+        elif name == "all":
+            self._education = "all"
         else:
             Warning('Education definition not in accordance with corpus')
-            self._education = name
+            self._education = ""
 
-    def set_filter(self, city: str, gender: str, age: str, education: str, phrase: str):
+    def set_filter(self, city: str, gender: str,
+                   age: str, education: str, phrase: str):
         self.set_city(city)
         self.set_sex(gender)
         self.set_age(age)
@@ -231,7 +275,7 @@ class PRESEEA(Corpus):
 
         return city_list
 
-    def _check_cities(self, sample: str) -> list:
+    def _check_city(self, sample: str) -> list:
         """Check if samples are available for that feature
 
         Args:
@@ -258,7 +302,7 @@ class PRESEEA(Corpus):
         Returns:
             list: List of strings with the available cities
         """
-        city_list = self._check_cities(country)
+        city_list = self._check_city(country)
 
         return city_list
 

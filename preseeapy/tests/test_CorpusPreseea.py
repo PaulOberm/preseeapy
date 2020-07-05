@@ -84,6 +84,37 @@ class TestCorpusPreseeaClass(unittest.TestCase):
         self.assertIn(self._education, filter_name)
         self.assertIn(self._phrase, filter_name)
 
+    def test_retrieve_phrase_data(self):
+        _ = self.corpus_1.set_filter(city="",
+                                     gender=self._gender,
+                                     age=self._age,
+                                     education=self._education,
+                                     phrase=self._phrase)
+        results = self.corpus_1.retrieve_phrase_data()
+
+        # Test if responded result is empty, since no city is defined
+        self.assertEqual([], results)
+
+        _ = self.corpus_1.set_filter(city=self._city,
+                                     gender="",
+                                     age=self._age,
+                                     education=self._education,
+                                     phrase=self._phrase)
+        results = self.corpus_1.retrieve_phrase_data()
+
+        # Test if responded result is empty, since no gender is defined
+        self.assertEqual([], results)
+
+        _ = self.corpus_1.set_filter(city=self._city,
+                                     gender=self._gender,
+                                     age=self._age,
+                                     education=self._education,
+                                     phrase="")
+        results = self.corpus_1.retrieve_phrase_data()
+
+        # Test if responded result is empty, since no phrase is defined
+        self.assertEqual([], results)
+
 
 if __name__ == '__main__':
     unittest.main()

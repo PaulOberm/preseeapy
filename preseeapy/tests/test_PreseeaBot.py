@@ -7,9 +7,9 @@ class TestPreseeaBot(unittest.TestCase):
     def setUp(self):
         self._phrase = 'hago '
         self._city = 'Madrid'
-        self._education = 'high'
-        self._age = 'young'
-        self._gender = 'female'
+        self._education = 'Alto'
+        self._age = 'Grupo 1'
+        self._gender = 'Mujer'
         self.spider = PreseeabotSpider(phrase=self._phrase,
                                        city=self._city,
                                        gender=self._gender,
@@ -22,6 +22,7 @@ class TestPreseeaBot(unittest.TestCase):
         """
         # Set expected return values
         correct_class_name_city = "dnn_ctr520_TranscriptionQuery_chkFtCity_11"
+        correct_class_name_city_all = "dnn_ctr520_TranscriptionQuery_chkFtCity_0"
 
         # Run basic use cases and test
         retrieved_class_name_city = self.spider.map_to_city_key(self._city)
@@ -30,6 +31,10 @@ class TestPreseeaBot(unittest.TestCase):
 
         retrieved_class_name_city = self.spider.map_to_city_key('Pereira')
         self.assertNotEqual(correct_class_name_city,
+                            retrieved_class_name_city)
+
+        retrieved_class_name_city = self.spider.map_to_city_key('all')
+        self.assertEqual(correct_class_name_city_all,
                             retrieved_class_name_city)
 
         self.assertRaises(KeyError, self.spider.map_to_city_key,
@@ -41,13 +46,18 @@ class TestPreseeaBot(unittest.TestCase):
         """
         # Set expected return values
         correct_class_name_female = "dnn_ctr520_TranscriptionQuery_chkFtSex_2"
+        correct_class_name_all = "dnn_ctr520_TranscriptionQuery_chkFtSex_0"
 
         # Run basic use cases and test
         retrieved_class_name_female = self.spider.map_to_gender_key(self._gender)
         self.assertEqual(correct_class_name_female,
                          retrieved_class_name_female)
 
-        retrieved_class_name_female = self.spider.map_to_gender_key('male')
+        retrieved_class_name_female = self.spider.map_to_gender_key('Hombre')
+        self.assertNotEqual(correct_class_name_female,
+                            retrieved_class_name_female)
+
+        retrieved_class_name_all = self.spider.map_to_gender_key('all')
         self.assertNotEqual(correct_class_name_female,
                             retrieved_class_name_female)
 
@@ -61,15 +71,20 @@ class TestPreseeaBot(unittest.TestCase):
             to the used class name for crawling.
         """
         # Set expected return values
-        correct_class_name_young = "dnn$ctr520$TranscriptionQuery$chkFtAgeGroup$1"
+        correct_class_name_young = "dnn_ctr520_TranscriptionQuery_chkFtAgeGroup_1"
+        correct_class_name_all = "dnn_ctr520_TranscriptionQuery_chkFtAgeGroup_0"
 
         # Run basic use cases and test
         retrieved_class_name_young = self.spider.map_to_age_key(self._age)
         self.assertEqual(correct_class_name_young, retrieved_class_name_young)
 
-        retrieved_class_name_young = self.spider.map_to_age_key('old')
+        retrieved_class_name_young = self.spider.map_to_age_key('Grupo 2')
         self.assertNotEqual(correct_class_name_young,
                             retrieved_class_name_young)
+
+        retrieved_class_name_all = self.spider.map_to_age_key('all')
+        self.assertEqual(correct_class_name_all,
+                            retrieved_class_name_all)
 
         self.assertRaises(ValueError, self.spider.map_to_age_key,
                           **{'age': 'very_old'})
@@ -79,16 +94,27 @@ class TestPreseeaBot(unittest.TestCase):
             to the used class name for crawling.
         """
         # Set expected return values
-        correct_class_name_education = "dnn$ctr520$TranscriptionQuery$chkFtStudyLevel$1"
+        correct_class_name_education = "dnn_ctr520_TranscriptionQuery_chkFtStudyLevel_1"
 
         # Run basic use cases and test
         retrieved_class_name_education = self.spider.map_to_education_key(self._education)
         self.assertEqual(correct_class_name_education,
                          retrieved_class_name_education)
 
-        retrieved_class_name_education = self.spider.map_to_education_key('low')
+        retrieved_class_name_education = self.spider.map_to_education_key('Bajo')
         self.assertNotEqual(correct_class_name_education,
                             retrieved_class_name_education)
 
         self.assertRaises(ValueError, self.spider.map_to_education_key,
                           **{'education': 'very_high'})
+
+    def test_parse_form(self):
+        response_object = {"input": ""}
+        wrong_input_response = self.spider.parse_form(response_object)
+        print(wrong_input_response)
+
+        # self.assertEqual(None, wrong_input_response)
+
+
+if __name__ == '__main__':
+    unittest.main()

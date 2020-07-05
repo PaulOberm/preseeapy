@@ -27,9 +27,13 @@ class PreseeabotSpider(scrapy.Spider):
 
         self._search_phrase = phrase
         self._city_key = self.map_to_city_key(city)
+        print(self._city_key)
         self._gender_key = self.map_to_gender_key(gender)
+        print(self._gender_key)
         self._education_key = self.map_to_education_key(education)
+        # print(self._education_key)
         self._age_key = self.map_to_age_key(age)
+        # print(self._age_key)
 
     def map_to_city_key(self, city: str) -> str:
         """Map a city or location class to the correct key for the PRESEEA webpage
@@ -43,13 +47,16 @@ class PreseeabotSpider(scrapy.Spider):
         """
         cities_dict = self._feature_dict['City']
         try:
-            city_class_number = cities_dict[city]
+            if city != "all":
+                city_class_number = cities_dict[city]
+            else:
+                city_class_number = 0
         except KeyError as e:
             raise KeyError(e)
 
         # Create city class from correctly listed
         # configuration file preseea.json
-        default_city_class_string = "dnn_ctr520_TranscriptionQuery_chkFtCity_"
+        default_city_class_string = "dnn$ctr520$TranscriptionQuery$chkFtCity$"
         city_class = default_city_class_string + str(city_class_number)
 
         return city_class
@@ -63,13 +70,15 @@ class PreseeabotSpider(scrapy.Spider):
         Returns:
             str: Gender class key in the HTML webpage
         """
-        if gender == 'male':
-            gender_class = "dnn_ctr520_TranscriptionQuery_chkFtSex_1"
-        elif gender == 'female':
-            gender_class = "dnn_ctr520_TranscriptionQuery_chkFtSex_2"
+        if gender == 'Hombre':
+            gender_class = "dnn$ctr520$TranscriptionQuery$chkFtSex$1"
+        elif gender == 'Mujer':
+            gender_class = "dnn$ctr520$TranscriptionQuery$chkFtSex$2"
+        elif gender == 'all':
+            gender_class = "dnn$ctr520$TranscriptionQuery$chkFtSex$0"
         else:
             raise ValueError('Unkown gender class {}! \
-                Available classes: male, female.'.format(gender))
+                Available classes: Hombre, Mujer.'.format(gender))
 
         return gender_class
 
@@ -83,15 +92,17 @@ class PreseeabotSpider(scrapy.Spider):
             str: Age class key in HTML webpage
         """
 
-        if age == 'young':
+        if age == 'Grupo 1':
             age_class = "dnn$ctr520$TranscriptionQuery$chkFtAgeGroup$1"
-        elif age == 'middle':
+        elif age == 'Grupo 2':
             age_class = "dnn$ctr520$TranscriptionQuery$chkFtAgeGroup$2"
-        elif age == 'old':
+        elif age == 'Grupo 3':
             age_class = "dnn$ctr520$TranscriptionQuery$chkFtAgeGroup$3"
+        elif age == 'all':
+            age_class = "dnn$ctr520$TranscriptionQuery$chkFtAgeGroup$0"
         else:
             raise ValueError('Unkown age class! \
-                Available classes: young, middle, old.')
+                Available classes: Grupo 1, Grupo 2, Grupo 2.')
 
         return age_class
 
@@ -105,15 +116,17 @@ class PreseeabotSpider(scrapy.Spider):
             str: Education class key in HTML webpage
         """
 
-        if education == 'high':
+        if education == 'Alto':
             education_class = "dnn$ctr520$TranscriptionQuery$chkFtStudyLevel$1"
-        elif education == 'medium':
+        elif education == 'Medio':
             education_class = "dnn$ctr520$TranscriptionQuery$chkFtStudyLevel$2"
-        elif education == 'low':
+        elif education == 'Bajo':
             education_class = "dnn$ctr520$TranscriptionQuery$chkFtStudyLevel$3"
+        elif education == 'all':
+            education_class = "dnn$ctr520$TranscriptionQuery$chkFtStudyLevel$0"
         else:
             raise ValueError('Unkown education class! \
-                Available classes: low, medium, high.')
+                Available classes: Alto, Medio, Bajo.')
 
         return education_class
 
@@ -170,10 +183,13 @@ class PreseeabotSpider(scrapy.Spider):
 
         return DNN
 
-    def parse_form(self, response):
+    def parse_form(self, response: scrapy.http.response.html.HtmlResponse):
         ScriptManager_TSM = ";;System.Web.Extensions, Version=3.5.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35:en:16997a38-7253-4f67-80d9-0cbcc01b3057:ea597d4b:b25378d2"
 
-        input_element_list = response.css('form input::attr(value)').extract()
+        try:
+            input_element_list = response.css('form input::attr(value)').extract()
+        except KeyError as e:
+            return None
 
         StylesheetManager_TSSM = input_element_list[2]
         EVENTTARGET = input_element_list[3]
@@ -198,8 +214,8 @@ class PreseeabotSpider(scrapy.Spider):
                     "dnn$ctr520$TranscriptionQuery$txtFirstname": self.FIRST_NAME,
                     "dnn$ctr520$TranscriptionQuery$txtSurname": self.SURNAME,
                     "dnn$ctr520$TranscriptionQuery$txtInstitution": self.INSTITUTION,
-                    "dnn$ctr520$TranscriptionQuery$chkFtCity$1": "on",
-                    "dnn$ctr520$TranscriptionQuery$chkFtSex$2": "on",
+                    self._city_key: "on",
+                    self._gender_key: "on",
                     self._age_key: "on",
                     self._education_key: "on",
                     "dnn$ctr520$TranscriptionQuery$txtFtValue": self._search_phrase,
