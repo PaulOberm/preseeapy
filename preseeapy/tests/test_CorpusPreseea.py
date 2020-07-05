@@ -1,10 +1,15 @@
 import unittest
 import mock
-from CorpusPreseea import PRESEEA
+from preseeapy.CorpusPreseea import PRESEEA
 
 
 class TestCorpusPreseeaClass(unittest.TestCase):
     def setUp(self):
+        self._city = "Pereira"
+        self._gender = "female"
+        self._age = "young"
+        self._education = "high"
+        self._phrase = "se "
         self.corpus_1 = PRESEEA()
 
     def test_get_corpus_name(self):
@@ -65,6 +70,19 @@ class TestCorpusPreseeaClass(unittest.TestCase):
         response = self.corpus_1.write_csv(data=test_data_correct,
                                            file_name=file_name)
         self.assertIn(file_name + '.csv', response)
+
+    def test_set_filter(self):
+        filter_name = self.corpus_1.set_filter(city=self._city,
+                                               gender=self._gender,
+                                               age=self._age,
+                                               education=self._education,
+                                               phrase=self._phrase)
+        # Test if responded filter name contains filter attributes
+        self.assertIn(self._city, filter_name)
+        self.assertIn(self._gender, filter_name)
+        self.assertIn(self._age, filter_name)
+        self.assertIn(self._education, filter_name)
+        self.assertIn(self._phrase, filter_name)
 
 
 if __name__ == '__main__':

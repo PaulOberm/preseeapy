@@ -1,6 +1,6 @@
 import unittest
 # import mock
-from preseeaspider.spiders.preseeabot import PreseeabotSpider
+from preseeapy.preseeaspider.spiders.preseeabot import PreseeabotSpider
 
 
 class TestPreseeaBot(unittest.TestCase):
