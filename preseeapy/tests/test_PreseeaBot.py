@@ -1,5 +1,4 @@
 import unittest
-# import mock
 from preseeapy.preseeaspider.spiders.preseeabot import PreseeabotSpider
 
 
@@ -21,8 +20,8 @@ class TestPreseeaBot(unittest.TestCase):
             to the used class name for crawling.
         """
         # Set expected return values
-        correct_class_name_city = "dnn_ctr520_TranscriptionQuery_chkFtCity_11"
-        correct_class_name_city_all = "dnn_ctr520_TranscriptionQuery_chkFtCity_0"
+        correct_class_name_city = "dnn$ctr520$TranscriptionQuery$chkFtCity$11"
+        correct_class_name_city_all = "dnn$ctr520$TranscriptionQuery$chkFtCity$0"
 
         # Run basic use cases and test
         retrieved_class_name_city = self.spider.map_to_city_key(self._city)
@@ -45,8 +44,8 @@ class TestPreseeaBot(unittest.TestCase):
             to the used class name for crawling.
         """
         # Set expected return values
-        correct_class_name_female = "dnn_ctr520_TranscriptionQuery_chkFtSex_2"
-        correct_class_name_all = "dnn_ctr520_TranscriptionQuery_chkFtSex_0"
+        correct_class_name_female = "dnn$ctr520$TranscriptionQuery$chkFtSex$2"
+        correct_class_name_all = "dnn$ctr520$TranscriptionQuery$chkFtSex$0"
 
         # Run basic use cases and test
         retrieved_class_name_female = self.spider.map_to_gender_key(self._gender)
@@ -71,8 +70,8 @@ class TestPreseeaBot(unittest.TestCase):
             to the used class name for crawling.
         """
         # Set expected return values
-        correct_class_name_young = "dnn_ctr520_TranscriptionQuery_chkFtAgeGroup_1"
-        correct_class_name_all = "dnn_ctr520_TranscriptionQuery_chkFtAgeGroup_0"
+        correct_class_name_young = "dnn$ctr520$TranscriptionQuery$chkFtAgeGroup$1"
+        correct_class_name_all = "dnn$ctr520$TranscriptionQuery$chkFtAgeGroup$0"
 
         # Run basic use cases and test
         retrieved_class_name_young = self.spider.map_to_age_key(self._age)
@@ -94,7 +93,7 @@ class TestPreseeaBot(unittest.TestCase):
             to the used class name for crawling.
         """
         # Set expected return values
-        correct_class_name_education = "dnn_ctr520_TranscriptionQuery_chkFtStudyLevel_1"
+        correct_class_name_education = "dnn$ctr520$TranscriptionQuery$chkFtStudyLevel$1"
 
         # Run basic use cases and test
         retrieved_class_name_education = self.spider.map_to_education_key(self._education)

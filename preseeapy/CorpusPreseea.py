@@ -1,12 +1,47 @@
 from .CorpusDefinition import Corpus
+from twisted.internet import reactor
 import json
 import csv
 import itertools as it
 import os
+from multiprocessing import Process, Queue
 from scrapy.signalmanager import dispatcher
-from scrapy.crawler import CrawlerProcess
+import types
+from scrapy.crawler import CrawlerProcess, CrawlerRunner
 from scrapy import signals
 from .preseeaspider.spiders.preseeabot import PreseeabotSpider
+
+
+class ProcessHandler():
+    def __init__(self, attach_function: types.FunctionType):
+        if not hasattr(attach_function, '__call__'):
+            raise ValueError("Attach function object to ProcessHandler!")
+
+        self._queue = Queue()
+        self._process = self._start_process(attach_function)
+
+    def _start_process(self, function) -> Process:
+        """Start a parallel thread to run the twisted reactor in.
+
+        Args:
+            queue (multiprocessing.Queue): [description]
+
+        Returns:
+            multiprocessing.Process: [description]
+        """
+        p = Process(target=function,
+                    args=(self._queue,))
+        p.start()
+
+        return p
+
+    def get_queue_content(self):
+        content = self._queue.get()
+
+        return content
+
+    def close(self):
+        self._process.join()
 
 
 class PRESEEA(Corpus):
@@ -34,7 +69,7 @@ class PRESEEA(Corpus):
         self._gender = ""
         self._age = ""
         self._education = ""
-        
+
         self.SET_PROCESS = False
 
         self.city_list = self.get_all_cities()
@@ -54,13 +89,27 @@ class PRESEEA(Corpus):
         self._search_phrase = phrase
 
     def retrieve_phrase_data(self) -> list:
+        """Retrieve phrase data with a separate process' thread
+
+        Returns:
+            list: List of dictionaries with phrases and PRESEEA metadata
+        """
+        process_instance = ProcessHandler(self._retrieve_phrase_data_subprocess)
+
+        phrase_list = process_instance.get_queue_content()
+        process_instance.close()
+
+        return phrase_list
+
+    def _retrieve_phrase_data_subprocess(self, queue: Queue) -> list:
         """This method retrieves a list of phrases from an html document
 
         Returns:
             list: List of strings with phrases containing searched phrase
         """
         # Set up a crawler process to use a spider
-        process = CrawlerProcess({
+        # process = CrawlerProcess({
+        runner = CrawlerRunner({
             'USER_AGENT': "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 \
                            (KHTML, like Gecko) Chrome/55.0.2883.75 \
                            Safari/537.36",
@@ -70,6 +119,7 @@ class PRESEEA(Corpus):
                 'scrapy.spidermiddlewares.httperror.HttpErrorMiddleware': True
             }
         })
+
         # Save crawled results iteratively within a list
         results = []
 
@@ -79,21 +129,26 @@ class PRESEEA(Corpus):
 
         # Middleware between downloader and spider
         dispatcher.connect(crawler_results, signal=signals.item_passed)
+        dispatcher.connect(reactor.stop, signal=signals.spider_closed)
 
         # Apply requests from spider - Add arguments to initialize the spider
         if self._check_filter_parameters():
-            process.crawl(PreseeabotSpider,
-                          self._search_phrase,
-                          self._city,
-                          self._gender,
-                          self._education,
-                          self._age)
-            
-            if not self.SET_PROCESS:
-                _ = process.start()
-                self.SET_PROCESS = True
+            try:
+                defered = runner.crawl(PreseeabotSpider,
+                            self._search_phrase,
+                            self._city,
+                            self._gender,
+                            self._education,
+                            self._age)
 
-        return results
+                defered.addBoth(lambda _: reactor.stop())
+
+                reactor.run()
+                queue.put(results)
+            except Exception as e:
+                queue.put(e)
+        else:
+            queue.put(None)
 
     def _check_filter_parameters(self) -> bool:
         """Check the given filter parameters for a POST request.
@@ -126,6 +181,8 @@ class PRESEEA(Corpus):
             data (dict): retrieved data as dictionary
             file_name (str): csv file name
         """
+        if data is None:
+            return None
         if len(data) == 0:
             return None
 
@@ -162,11 +219,21 @@ class PRESEEA(Corpus):
             for idx, phrase in enumerate(data):
                 # Write data 1-indexed
                 writer.writerow([idx+1,
+                                 phrase['label'],
                                  phrase['text'],
                                  phrase['date'],
                                  phrase['country']])
 
         return os.getcwd() + '/' + file_name
+
+    def analyse(self, data: list):
+        """Analse the given data according to basic statistical measures
+
+        Args:
+            data (list): Retrieved data from preseea
+        """
+
+        return 0
 
     def set_city(self, name: str):
         """Set Corpus' instance city by its name and check beforehand

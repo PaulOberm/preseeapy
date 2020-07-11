@@ -18,7 +18,8 @@ class PreseeabotSpider(scrapy.Spider):
                  phrase: str,
                  city: str,
                  gender: str,
-                 education: str, age: str):
+                 education: str,
+                 age: str):
         super().__init__()
 
         # Open PRESEEA configuration file
@@ -157,7 +158,11 @@ class PreseeabotSpider(scrapy.Spider):
             date_info = phrase_table.css("tr td").extract()[2 + idx*NUM_ELEMENTS_PER_ITEM]
             country_info = phrase_table.css("tr td").extract()[3 + idx*NUM_ELEMENTS_PER_ITEM]
 
+            label = phrase_table.css("tr td").extract()[0 + idx*NUM_ELEMENTS_PER_ITEM]
+            label = label.split(")\">")[1].split("</a>")[0]
+
             yield {
+                'label': label,
                 'text': phrase,
                 'date': date_info.split("px;\">")[1].split('</td>')[0],
                 'country': country_info.split("<td>")[1].split('</td>')[0],
