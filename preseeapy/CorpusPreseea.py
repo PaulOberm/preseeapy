@@ -101,6 +101,20 @@ class PRESEEA(Corpus):
 
         return phrase_list
 
+    def retrieve_phrase_info(self) -> int:
+        """Get general information from referring to
+           samples from a specific city
+
+        Args:
+            n_total (int): Total number of samples for a city
+        """
+        # Get general information concerning this phrase
+        self._search_phrase = " "
+        total_list = self.retrieve_phrase_data()
+        n_total = len(total_list)
+
+        return n_total
+
     def _retrieve_phrase_data_subprocess(self, queue: Queue) -> list:
         """This method retrieves a list of phrases from an html document
 
@@ -226,14 +240,16 @@ class PRESEEA(Corpus):
 
         return os.getcwd() + '/' + file_name
 
-    def analyse(self, data: list):
-        """Analse the given data according to basic statistical measures
+    def analyse(self):
+        """Analse the given data according to basic statistical measures.
+           Summation of general information regarding a city from corpus.
 
         Args:
             data (list): Retrieved data from preseea
         """
+        n_samples = self.retrieve_phrase_info()
 
-        return 0
+        return n_samples
 
     def set_city(self, name: str):
         """Set Corpus' instance city by its name and check beforehand

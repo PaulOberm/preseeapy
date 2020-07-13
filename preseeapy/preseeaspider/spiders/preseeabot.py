@@ -152,8 +152,12 @@ class PreseeabotSpider(scrapy.Spider):
         # Iterate each table response
         for idx, phrase in enumerate(phrase_list):
             phrase = phrase.split("TextMatch")[1]
-            # phrase = phrase.split("\r\n")[1]
-            phrase = phrase.split("<span")[0] + " {} ".format(self._search_phrase) + phrase.split("</span>")[1].split("&lt")[0]
+
+            if(self._search_phrase != ""):
+                phrase = phrase.split("<span")[0] + " {} ".format(self._search_phrase) + phrase.split("</span>")[1]
+                phrase = phrase.split("&lt")[0]
+            else:
+                phrase = phrase# .split("<span")[0]
 
             date_info = phrase_table.css("tr td").extract()[2 + idx*NUM_ELEMENTS_PER_ITEM]
             country_info = phrase_table.css("tr td").extract()[3 + idx*NUM_ELEMENTS_PER_ITEM]
@@ -189,25 +193,39 @@ class PreseeabotSpider(scrapy.Spider):
         return DNN
 
     def parse_form(self, response: scrapy.http.response.html.HtmlResponse):
-        ScriptManager_TSM = ";;System.Web.Extensions, Version=3.5.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35:en:16997a38-7253-4f67-80d9-0cbcc01b3057:ea597d4b:b25378d2"
-
         try:
             input_element_list = response.css('form input::attr(value)').extract()
         except KeyError as e:
             return None
 
-        StylesheetManager_TSSM = input_element_list[2]
-        EVENTTARGET = input_element_list[3]
-        EVENTARGUMENT = input_element_list[4]
-        VIEWSTATE = input_element_list[5]
-        VIEWSTATEGENERATOR = input_element_list[6]
-        VIEWSTATEENCRYPTED = input_element_list[7]
-        EVENTVALIDATION = input_element_list[8]
-        SEARCH = input_element_list[9]
-        SHOW = input_element_list[11]
-        DNN = self._prepare_DNN(input_element_list[12])
-
         # Set up form with generative keys
+        formdata = self._create_formdata(input_element_list)
+
+        yield scrapy.FormRequest(url=self.start_urls[0],
+                                 formdata=formdata,
+                                 callback=self.parse_results)
+
+    def _create_formdata(self, element_list) -> dict:
+        """Create an ASPX form for the PRESEEA POST request
+
+        Args:
+            element_list (list): List of input elements for POST
+
+        Returns:
+            dict: Necessary aspx form data for POST
+        """
+        ScriptManager_TSM = ";;System.Web.Extensions, Version=3.5.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35:en:16997a38-7253-4f67-80d9-0cbcc01b3057:ea597d4b:b25378d2"
+        StylesheetManager_TSSM = element_list[2]
+        EVENTTARGET = element_list[3]
+        EVENTARGUMENT = element_list[4]
+        VIEWSTATE = element_list[5]
+        VIEWSTATEGENERATOR = element_list[6]
+        VIEWSTATEENCRYPTED = element_list[7]
+        EVENTVALIDATION = element_list[8]
+        SEARCH = element_list[9]
+        SHOW = element_list[11]
+        DNN = self._prepare_DNN(element_list[12])
+
         formdata = {"StylesheetManager_TSSM": StylesheetManager_TSSM,
                     "ScriptManager_TSM": ScriptManager_TSM,
                     "__EVENTTARGET": EVENTTARGET,
@@ -232,6 +250,7 @@ class PreseeabotSpider(scrapy.Spider):
                     "ScrollTop": "536",
                     "__dnnVariable": DNN}
 
-        yield scrapy.FormRequest(url=self.start_urls[0],
-                                 formdata=formdata,
-                                 callback=self.parse_results)
+        # if self._search_phrase != "":
+        #     formdata["dnn$ctr520$TranscriptionQuery$txtFtValue"] = self._search_phrase
+
+        return formdata

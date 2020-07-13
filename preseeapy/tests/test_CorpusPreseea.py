@@ -1,5 +1,6 @@
 import unittest
 import mock
+from mock import patch
 from preseeapy.CorpusPreseea import ProcessHandler
 from preseeapy.CorpusPreseea import PRESEEA
 
@@ -98,10 +99,12 @@ class TestCorpusPreseeaClass(unittest.TestCase):
         self.assertIn(self._education, filter_name)
         self.assertIn(self._phrase, filter_name)
 
-    def test_analyse(self):
-        n_sources = self.corpus_1.analyse(self.data)
+    @mock.patch("preseeapy.CorpusPreseea.PRESEEA.retrieve_phrase_info",
+                return_value=10)
+    def test_analyse(self, mocked_method):
+        n_sources = self.corpus_1.analyse()
 
-        self.assertLessEqual(n_sources, len(self.data))
+        self.assertEqual(n_sources, mocked_method.return_value)
 
     @mock.patch("preseeapy.CorpusPreseea.ProcessHandler.get_queue_content",
                 return_value=[{"test": "test"}])
@@ -135,6 +138,15 @@ class TestCorpusPreseeaClass(unittest.TestCase):
 
         # # Test if responded result is empty, since no phrase is defined
         # self.assertEqual([], results)
+
+    @mock.patch("preseeapy.CorpusPreseea.PRESEEA.retrieve_phrase_data",
+                  return_value=[{"test": "test"}, {"test": "test"}])
+    def test_retrieve_phrase_info(self, mocked_list):
+        # instance = PRESEEA()
+        n_samples = self.corpus_1.retrieve_phrase_info()
+        # n_samples = self.corpus_1.retrieve_phrase_info()
+
+        self.assertEqual(len(mocked_list.return_value), n_samples)
 
 
 if __name__ == '__main__':

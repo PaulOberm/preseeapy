@@ -17,7 +17,7 @@ for city in wave_model_city_list:
     # Get data via scrapy framework as API
     sample_list = corpus_preseea.retrieve_phrase_data()
 
-    corpus_preseea.analyse(data=sample_list)
+    meta_data = corpus_preseea.analyse()
 
     # Write data with stats into .csv file
     corpus_preseea.write_csv(data=sample_list,
