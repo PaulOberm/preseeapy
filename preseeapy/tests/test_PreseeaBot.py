@@ -15,6 +15,13 @@ class TestPreseeaBot(unittest.TestCase):
                                        education=self._education,
                                        age=self._age)
 
+    def test_cut_begin(self):
+        test_phrase = ">… \"motor\"/&gt; E: ¿ quién iba acompañando a  ustedes  ? I: iba una // bueno …"
+        return_phrase = self.spider.cut_begin(test_phrase)
+
+        self.assertNotIn('>', return_phrase)
+        self.assertEqual(return_phrase, " E: ¿ quién iba acompañando a  ustedes  ? I: iba una // bueno …")
+
     def test_map_to_city_key(self):
         """ Test the correct mapping of an city or location string
             to the used class name for crawling.
@@ -110,8 +117,6 @@ class TestPreseeaBot(unittest.TestCase):
     def test_parse_form(self):
         response_object = {"input": ""}
         wrong_input_response = self.spider.parse_form(response_object)
-        print(wrong_input_response)
-
         # self.assertEqual(None, wrong_input_response)
 
 

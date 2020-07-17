@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import json
 import scrapy
-import os
+import re
 from scrapy.shell import inspect_response
 
 
@@ -28,13 +28,9 @@ class PreseeabotSpider(scrapy.Spider):
 
         self._search_phrase = phrase
         self._city_key = self.map_to_city_key(city)
-        print(self._city_key)
         self._gender_key = self.map_to_gender_key(gender)
-        print(self._gender_key)
         self._education_key = self.map_to_education_key(education)
-        # print(self._education_key)
         self._age_key = self.map_to_age_key(age)
-        # print(self._age_key)
 
     def map_to_city_key(self, city: str) -> str:
         """Map a city or location class to the correct key for the PRESEEA webpage
@@ -140,6 +136,27 @@ class PreseeabotSpider(scrapy.Spider):
         yield scrapy.Request(url=self.start_urls[0],
                              callback=self.parse_form)
 
+    def cut_begin(self, phrase: str) -> str:
+        """Cut the beginning of a phrases' unnecessary characters
+
+        Args:
+            phrase (str): Phrase of interest
+
+        Returns:
+            str: Phrase of interest
+        """
+        def _split(delimiter, phrase):
+            splitted = phrase.split(delimiter)
+            if len(splitted) > 1:
+                phrase = splitted[1]
+
+            return phrase
+
+        phrase = _split(phrase=phrase, delimiter=">")
+        phrase = _split(phrase=phrase, delimiter="&gt;")
+
+        return phrase
+
     def parse_results(self, response):
         # Get table of responses from POST response
         phrase_table = response.css("table.preseea_grid")
@@ -153,9 +170,15 @@ class PreseeabotSpider(scrapy.Spider):
         for idx, phrase in enumerate(phrase_list):
             phrase = phrase.split("TextMatch")[1]
 
-            if(self._search_phrase != ""):
-                phrase = phrase.split("<span")[0] + " {} ".format(self._search_phrase) + phrase.split("</span>")[1]
-                phrase = phrase.split("&lt")[0]
+            if(self._search_phrase != " "):
+                phrase = phrase.split("<span")[0]  + " {} ".format(self._search_phrase) + phrase.split("{}</span>".format(self._search_phrase))[1]
+                phrase = re.sub(r'\<.*?\>', '', phrase)
+                phrase = re.sub(r'&lt.*?&gt;', '', phrase)
+                # phrase = self.cut_end(phrase)
+
+                phrase = self.cut_begin(phrase)
+                # phrase = phrase.split('<')[0]
+                # phrase = phrase.split('&lt')[0]
             else:
                 phrase = phrase# .split("<span")[0]
 

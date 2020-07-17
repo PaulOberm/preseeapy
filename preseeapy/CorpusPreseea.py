@@ -108,10 +108,17 @@ class PRESEEA(Corpus):
         Args:
             n_total (int): Total number of samples for a city
         """
-        # Get general information concerning this phrase
+        city_list = list(self._feature_dict['City'].keys())
+        if self._city not in city_list:
+            Warning('City not available in Corpus.')
+            return None
+
+        # Get general information concerning this phrases
+        temp_search_phrase = self._search_phrase
         self._search_phrase = " "
         total_list = self.retrieve_phrase_data()
         n_total = len(total_list)
+        self._search_phrase = temp_search_phrase
 
         return n_total
 
@@ -188,11 +195,38 @@ class PRESEEA(Corpus):
 
         return check_filters
 
-    def write_csv(self, data: list, file_name: str):
+    def _write_section(self, writer: csv.writer, titel: str, content: str):
+        writer.writerow([titel, content])
+        writer.writerow(["\n"])
+
+        return writer
+
+    def _write_meta_data(self, writer: csv.writer, meta: dict):
+        writer = self._write_section(writer, "Corpus", self._corpus_name)
+        writer = self._write_section(writer, "User", meta['Name'])
+        writer.writerow(["Code", "https://github.com/PaulOberm/preseeapy"])
+        writer = self._write_section(writer, "Download", "https://test.pypi.org/project/preseeapy/")
+
+        keys_list = list(self._feature_dict.keys())
+        writer.writerow(["Filter:"])
+        writer.writerow([keys_list[1], self._gender])
+        writer.writerow([keys_list[2], self._age])
+        writer.writerow([keys_list[3], self._education])
+        writer.writerow([keys_list[4], self._city])
+
+        writer = self._write_section(writer, "Phrase", self._search_phrase)
+        writer = self._write_section(writer,
+                                     "Samples total",
+                                     meta['Total samples'])
+
+        return writer
+
+    def write_csv(self, data: list, meta: dict, file_name: str):
         """Write current phrases' search results into csv
 
         Args:
             data (dict): retrieved data as dictionary
+            meta_data (dict): General information referring corpus data
             file_name (str): csv file name
         """
         if data is None:
@@ -214,19 +248,9 @@ class PRESEEA(Corpus):
             writer = csv.writer(file)
 
             # Write meta data
-            keys_list = list(self._feature_dict.keys())
-            writer.writerow(["Corpus", self._corpus_name])
-            writer.writerow(["\n"])
-            writer.writerow(["Filter:"])
-            writer.writerow([keys_list[1], self._gender])
-            writer.writerow([keys_list[2], self._age])
-            writer.writerow([keys_list[3], self._education])
-            writer.writerow([keys_list[4], self._city])
-            writer.writerow(["Phrase", self._search_phrase])
-            writer.writerow(["\n"])
-            writer.writerow(["Found number of entries", len(data)])
+            writer = self._write_meta_data(writer, meta)
+            writer.writerow(["Found", len(data)])
             writer.writerow(["Index", "Text"])
-            writer.writerow(["\n"])
             writer.writerow(["\n"])
 
             # Write data
@@ -240,16 +264,103 @@ class PRESEEA(Corpus):
 
         return os.getcwd() + '/' + file_name
 
-    def analyse(self):
+    def _is_word(self, word: str) -> bool:
+        no_word_list = ["", "/", "…"]
+
+        is_word = False
+        if word not in no_word_list:
+            is_word = True
+
+        return is_word
+
+    def _get_word_list(self, phrase: str) -> list:
+        word_list = phrase.split(" ")
+        word_list = [word for word in word_list if self._is_word(word)]
+
+        return word_list
+
+    def get_leading_words(self, leading_phrase: str, n_words: int) -> list:
+        """Get words in from phrase in front of a search phrase
+
+        Args:
+            phrase (str): Front phrase, in front of search phrase
+            n_words (int): Number of frontal words
+
+        Returns:
+            list: Frontal words
+        """
+        word_list = self._get_word_list(leading_phrase)
+
+        if len(word_list) > n_words:
+            word_list = word_list[-n_words:]
+
+        return word_list
+
+    def get_following_words(self, following_phrase: str, n_words: int) -> list:
+        """Get words in from phrase in front of a search phrase
+
+        Args:
+            phrase (str): Posterior phrase, after the search phrase
+            n_words (int): Number of posterior words
+
+        Returns:
+            list: Posterior words
+        """
+        word_list = self._get_word_list(following_phrase)
+
+        if len(word_list) > n_words:
+            word_list = word_list[:n_words]
+
+        return word_list
+
+    def get_environment_words(self, sample: dict) -> (list, list):
+        """Get leading and following words from phrase
+           around the search phrase.
+
+        Args:
+            phrase (dict): Phrase around the search phrase
+
+        Returns:
+            list: List of leading words
+            list: List of following words
+        """
+        splitted = sample['text'].split(self._search_phrase)
+        leading_words = self.get_leading_words(leading_phrase=splitted[0],
+                                               n_words=2)
+
+        following_words = self.get_following_words(following_phrase=splitted[1],
+                                                   n_words=2)
+
+        return leading_words, following_words
+
+    def analyse(self, samples_list: list):
         """Analse the given data according to basic statistical measures.
            Summation of general information regarding a city from corpus.
 
         Args:
+            samples_list (list): List of dictionaries with corpus data
+
+        Returns:
             data (list): Retrieved data from preseea
         """
         n_samples = self.retrieve_phrase_info()
+        data = {'Total samples': n_samples}
+        data['Leading'] = None
+        data['Following'] = None
 
-        return n_samples
+        if type(samples_list) is not list:
+            Warning("No samples list introduced! City might not be available.")
+        else:
+            lead_list = [None]*len(samples_list)
+            post_list = [None]*len(samples_list)
+
+            for idx, sample in enumerate(samples_list):
+                lead_list[idx], post_list[idx] = self.get_environment_words(sample)
+
+            data['Leading'] = lead_list
+            data['Following'] = post_list
+
+        return data
 
     def set_city(self, name: str):
         """Set Corpus' instance city by its name and check beforehand

@@ -64,11 +64,11 @@ class TestCorpusPreseeaClass(unittest.TestCase):
                         'country': 'test_country'}]
 
         self.assertRaises(KeyError, self.corpus_1.write_csv,
-                          **{'data': test_data, 'file_name': 'test'})
+                          **{'data': test_data, 'meta': 1, 'file_name': 'test'})
         self.assertRaises(KeyError, self.corpus_1.write_csv,
-                          **{'data': test_data_2, 'file_name': 'test'})
+                          **{'data': test_data_2, 'meta': 1, 'file_name': 'test'})
         self.assertRaises(KeyError, self.corpus_1.write_csv,
-                          **{'data': test_data_3, 'file_name': 'test'})
+                          **{'data': test_data_3, 'meta': 1, 'file_name': 'test'})
 
         test_data_correct = [{'text': 'test_text',
                               'date': 'test_date',
@@ -79,6 +79,8 @@ class TestCorpusPreseeaClass(unittest.TestCase):
             mock.mock_open(read_data="foo").return_value]
 
         response = self.corpus_1.write_csv(data=test_data_correct,
+                                           meta={'Total samples': 1,
+                                                 'Name': 'Test'},
                                            file_name=file_name)
         self.assertIn(file_name + '.csv', response)
 
@@ -99,12 +101,54 @@ class TestCorpusPreseeaClass(unittest.TestCase):
         self.assertIn(self._education, filter_name)
         self.assertIn(self._phrase, filter_name)
 
+    def test_get_leading_words(self):
+        test_phrase = "…  desde / desde que"
+        number_words = 2
+        test_words = self.corpus_1.get_leading_words(test_phrase, number_words)
+        self.assertEqual(len(test_words), number_words)
+        test_words = self.corpus_1.get_leading_words(test_phrase, 100)
+        self.assertEqual(len(test_words), 3)
+
+    def test_get_following_words(self):
+        test_phrase = "erais pequeños / y todo eso / siempre …"
+        number_words = 2
+
+        test_words = self.corpus_1.get_following_words(test_phrase, number_words)
+        self.assertEqual(len(test_words), number_words)
+
+        test_words = self.corpus_1.get_following_words(test_phrase, 100)
+        self.assertEqual(len(test_words), 6)
+
+    def test_get_environment_words(self):
+        test_phrase = "…  desde / desde que   ustedes  erais\
+              pequeños / y todo eso / siempre …"
+        self.corpus_1.set_search_phrase("ustedes")
+
+        leading_list, following_list = self.corpus_1.get_environment_words({'text': test_phrase})
+
+        self.assertEqual(len(leading_list), 2)
+        self.assertEqual(len(following_list), 2)
+
     @mock.patch("preseeapy.CorpusPreseea.PRESEEA.retrieve_phrase_info",
                 return_value=10)
     def test_analyse(self, mocked_method):
-        n_sources = self.corpus_1.analyse()
+        self.corpus_1.set_search_phrase("ustedes")
+        test_phrase = "…  desde / desde que   ustedes  erais\
+              pequeños / y todo eso / siempre …"
+        test_list = [{'text': test_phrase}]
 
-        self.assertEqual(n_sources, mocked_method.return_value)
+        analysed_data = self.corpus_1.analyse(samples_list=test_list)
+        self.assertEqual(len(analysed_data['Leading']), len(test_list))
+        self.assertEqual(len(analysed_data['Following']), len(test_list))
+
+        self.assertEqual(analysed_data['Leading'][0][0], "desde")
+        self.assertEqual(analysed_data['Leading'][0][1], "que")
+        self.assertEqual(analysed_data['Following'][0][0], "erais")
+        self.assertEqual(analysed_data['Following'][0][1], "pequeños")
+        self.assertNotEqual(analysed_data['Following'][0][1], "pequeños test")
+
+        self.assertEqual(analysed_data['Total samples'],
+                         mocked_method.return_value)
 
     @mock.patch("preseeapy.CorpusPreseea.ProcessHandler.get_queue_content",
                 return_value=[{"test": "test"}])
@@ -142,11 +186,13 @@ class TestCorpusPreseeaClass(unittest.TestCase):
     @mock.patch("preseeapy.CorpusPreseea.PRESEEA.retrieve_phrase_data",
                   return_value=[{"test": "test"}, {"test": "test"}])
     def test_retrieve_phrase_info(self, mocked_list):
-        # instance = PRESEEA()
+        self.corpus_1.set_city('Madrid')
         n_samples = self.corpus_1.retrieve_phrase_info()
-        # n_samples = self.corpus_1.retrieve_phrase_info()
-
         self.assertEqual(len(mocked_list.return_value), n_samples)
+
+        self.corpus_1.set_city('Unavailable')
+        n_test = self.corpus_1.retrieve_phrase_info()
+        self.assertIsNone(n_test)
 
 
 if __name__ == '__main__':
