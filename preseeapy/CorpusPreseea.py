@@ -4,44 +4,12 @@ import json
 import csv
 import itertools as it
 import os
-from multiprocessing import Process, Queue
+from multiprocessing import Queue
 from scrapy.signalmanager import dispatcher
-import types
-from scrapy.crawler import CrawlerProcess, CrawlerRunner
+from scrapy.crawler import CrawlerRunner
 from scrapy import signals
 from .preseeaspider.spiders.preseeabot import PreseeabotSpider
-
-
-class ProcessHandler():
-    def __init__(self, attach_function: types.FunctionType):
-        if not hasattr(attach_function, '__call__'):
-            raise ValueError("Attach function object to ProcessHandler!")
-
-        self._queue = Queue()
-        self._process = self._start_process(attach_function)
-
-    def _start_process(self, function) -> Process:
-        """Start a parallel thread to run the twisted reactor in.
-
-        Args:
-            queue (multiprocessing.Queue): [description]
-
-        Returns:
-            multiprocessing.Process: [description]
-        """
-        p = Process(target=function,
-                    args=(self._queue,))
-        p.start()
-
-        return p
-
-    def get_queue_content(self):
-        content = self._queue.get()
-
-        return content
-
-    def close(self):
-        self._process.join()
+from .utils import ProcessHandler
 
 
 class PRESEEA(Corpus):
@@ -52,14 +20,14 @@ class PRESEEA(Corpus):
         Corpus (class): General Corupus description
     """
 
-    def __init__(self, search_phrase=""):
-        """Generate a PRESEEA Corpus instance
+    def __init__(self, author: str, search_phrase=""):
+        """Generate a PRESEEA Corpus instance.
 
         Args:
             search_phrase (str, optional): Phrase to search
                 within corpus database. Defaults to "".
         """
-        super().__init__('PRESEEA')
+        super().__init__('PRESEEA', author)
 
         # Open PRESEEA configuration file
         with open('preseeapy/preseea.json', 'r') as file:
@@ -89,19 +57,22 @@ class PRESEEA(Corpus):
         self._search_phrase = phrase
 
     def retrieve_phrase_data(self) -> list:
-        """Retrieve phrase data with a separate process' thread
+        """Retrieve phrase data with a separate process.
 
         Returns:
             list: List of dictionaries with phrases and PRESEEA metadata
         """
-        process_instance = ProcessHandler(self._retrieve_phrase_data_subprocess)
+        # Initialize a subprocess instance
+        attach_function = self._retrieve_phrase_data_subprocess
+        process_instance = ProcessHandler(attach_function)
 
+        # Execute attached function on subprocess
         phrase_list = process_instance.get_queue_content()
         process_instance.close()
 
         return phrase_list
 
-    def retrieve_phrase_info(self) -> int:
+    def retrieve_city_info(self) -> int:
         """Get general information from referring to
            samples from a specific city
 
@@ -129,7 +100,6 @@ class PRESEEA(Corpus):
             list: List of strings with phrases containing searched phrase
         """
         # Set up a crawler process to use a spider
-        # process = CrawlerProcess({
         runner = CrawlerRunner({
             'USER_AGENT': "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 \
                            (KHTML, like Gecko) Chrome/55.0.2883.75 \
@@ -204,8 +174,8 @@ class PRESEEA(Corpus):
     def _write_meta_data(self, writer: csv.writer, meta: dict):
         writer = self._write_section(writer, "Corpus", self._corpus_name)
         writer = self._write_section(writer, "User", meta['Name'])
-        writer.writerow(["Code", "https://github.com/PaulOberm/preseeapy"])
-        writer = self._write_section(writer, "Download", "https://test.pypi.org/project/preseeapy/")
+        writer.writerow(["Code", "", "https://github.com/PaulOberm/preseeapy"])
+        writer.writerow(["Download", "", "https://test.pypi.org/project/preseeapy/"])
 
         keys_list = list(self._feature_dict.keys())
         writer.writerow(["Filter:"])
@@ -219,7 +189,186 @@ class PRESEEA(Corpus):
                                      "Samples total",
                                      meta['Total samples'])
 
+        # Get following verbs for 3PS_PL
+        verbs_anterior_2ps_pl = []
+        verbs_anterior_3ps_pl = []
+        if "Leading verbs" in meta:
+            for phrase in meta["Leading verbs"]:
+                if phrase["2ps_pl"] is not None:
+                    verbs_anterior_2ps_pl.append(phrase["2ps_pl"])
+                elif phrase["3ps_pl"] is not None:
+                    verbs_anterior_3ps_pl.append(phrase["3ps_pl"])
+
+            writer.writerow(["Anterior verbs"])
+            writer.writerow(["#2PS, PL", len(verbs_anterior_2ps_pl)])
+            writer.writerow(["#3PS, PL", len(verbs_anterior_3ps_pl)])
+            len_total_1 = len(verbs_anterior_2ps_pl) + len(verbs_anterior_3ps_pl)
+
+
+        if "Following verbs" in meta:
+            verbs_posterior_2ps_pl = []
+            verbs_posterior_3ps_pl = []
+            for phrase in meta["Following verbs"]:
+                if phrase["2ps_pl"] is not None:
+                    verbs_posterior_2ps_pl.append(phrase["2ps_pl"])
+                elif phrase["3ps_pl"] is not None:
+                    verbs_posterior_3ps_pl.append(phrase["3ps_pl"])
+
+            writer.writerow(["Posterior verbs"])
+            writer.writerow(["#2PS, PL", len(verbs_posterior_2ps_pl)])
+            writer.writerow(["#3PS, PL", len(verbs_posterior_3ps_pl)])
+            len_total_2 = len(verbs_posterior_2ps_pl) + len(verbs_posterior_3ps_pl)
+            writer.writerow(["#Verbs total", len_total_1+len_total_2])
+
         return writer
+
+    def _check_verb(func):
+        def wrapper(self, word: str) -> bool:
+            ending_list, exception_list = func(self, word)
+
+            is_verb_class = False
+            if word in exception_list:
+                is_verb_class = False
+            else:
+                for ending in ending_list:
+                    width = len(ending)
+                    if len(word)>1 and (word[-1]=="?" or word[-1]=="!"):
+                        word = word[:-1]
+
+                    if ending in word[-width:]:
+                        is_verb_class = True
+                        break
+            return is_verb_class
+        return wrapper
+
+    @_check_verb
+    def is_3person_plural(self, word: str) -> bool:
+        """Check if a word is a verb in 3. person, plural
+
+        Args:
+            word (str): Single word
+
+        Returns:
+            bool: Is 3P, PL
+        """
+        ending_list = ['en', 'on', 'an']
+        exception_list = ['con', 'en']
+
+        return ending_list, exception_list
+
+    @_check_verb
+    def is_1person_singular(self, word: str) -> bool:
+        """Check if a word is a verb in 1. person, singular
+
+        Args:
+            word (str): Single word
+
+        Returns:
+            bool: Is 1P, SG
+        """
+        ending_list = ['o', 'oy']
+        exception_list = [' no ', ' lo']
+
+        return ending_list, exception_list
+
+    @_check_verb
+    def is_2person_singular(self, word: str) -> bool:
+        """Check if a word is a verb in 2. person, singular
+
+        Args:
+            word (str): Single word
+
+        Returns:
+            bool: Is 2P, SG
+        """
+        ending_list = ['as', 'es']
+        exception_list = [' les ']
+
+        return ending_list, exception_list
+
+    @_check_verb
+    def is_3person_singular(self, word: str) -> bool:
+        """Check if a word is a verb in 3. person, singular
+
+        Args:
+            word (str): Single word
+
+        Returns:
+            bool: Is 3P, SG
+        """
+        ending_list = ['e', 'a']
+        exception_list = [' les ', ' le ', ' la ', ' las']
+
+        return ending_list, exception_list
+
+    @_check_verb
+    def is_1person_plural(self, word: str) -> bool:
+        """Check if a word is a verb in 1. person, plural
+
+        Args:
+            word (str): Single word
+
+        Returns:
+            bool: Is 1P, PL
+        """
+        ending_list = ['mos', 'monos']
+        exception_list = [' monos ']
+
+        return ending_list, exception_list
+
+    @_check_verb
+    def is_2person_plural(self, word: str) -> bool:
+        """Check if a word is a verb in 2. person, plural
+
+        Args:
+            word (str): Single word
+
+        Returns:
+            bool: Is 2P, PL
+        """
+        ending_list = ['eis', 'ois', 'ais', 'áis', 'éis']
+        exception_list = []
+
+        return ending_list, exception_list
+
+    def classify_words_as_verbs(self, word_list: list) -> dict:
+        verb_person = {
+                "1ps_sg": None,
+                "2ps_sg": None,
+                "3ps_sg": None,
+                "1ps_pl": None,
+                "2ps_pl": None,
+                "3ps_pl": None,
+            }
+        for word in word_list:
+            if self.is_1person_singular(word):
+                verb_person["1ps_sg"] = word
+            if self.is_2person_singular(word):
+                verb_person["2ps_sg"] = word
+            if self.is_3person_singular(word):
+                verb_person["3ps_sg"] = word
+            if self.is_3person_plural(word):
+                verb_person["3ps_pl"] = word
+            elif self.is_2person_plural(word):
+                verb_person["2ps_pl"] = word
+
+        return verb_person
+
+    def get_verbs(self, word_list: list) -> list:
+        """Get a list of verbs from a list of words
+
+        Args:
+            word_list (list): A list of of lists of words
+
+        Returns:
+            list: A sublist with verbs
+        """
+        verb_list = []
+        for sample_words in word_list:
+            classified_word = self.classify_words_as_verbs(sample_words)
+            verb_list.append(classified_word)
+
+        return verb_list
 
     def write_csv(self, data: list, meta: dict, file_name: str):
         """Write current phrases' search results into csv
@@ -250,17 +399,36 @@ class PRESEEA(Corpus):
             # Write meta data
             writer = self._write_meta_data(writer, meta)
             writer.writerow(["Found", len(data)])
-            writer.writerow(["Index", "Text"])
             writer.writerow(["\n"])
+            writer.writerow(["Index", "Sample", "Text", "Year", "Country", "Unmatch"])
 
             # Write data
             for idx, phrase in enumerate(data):
+                # Check if PP and verbal discrepancy
+                if self._search_phrase == "vosotros ":
+                    lead_verb = meta["Leading verbs"][idx]["3ps_pl"]
+                    follow_verb = meta["Following verbs"][idx]["3ps_pl"]
+                elif self._search_phrase == "ustedes ":
+                    lead_verb = meta["Leading verbs"][idx]["2ps_pl"]
+                    follow_verb = meta["Following verbs"][idx]["2ps_pl"]
+                else:
+                    lead_verb = None
+                    follow_verb = None
+
+                if lead_verb is not None:
+                    non_fit = "x"
+                elif follow_verb is not None:
+                    non_fit = "x"
+                else:
+                    non_fit = ""
+
                 # Write data 1-indexed
                 writer.writerow([idx+1,
                                  phrase['label'],
                                  phrase['text'],
                                  phrase['date'],
-                                 phrase['country']])
+                                 phrase['country'],
+                                 non_fit])
 
         return os.getcwd() + '/' + file_name
 
@@ -324,41 +492,49 @@ class PRESEEA(Corpus):
             list: List of leading words
             list: List of following words
         """
+        word_width = 3
         splitted = sample['text'].split(self._search_phrase)
         leading_words = self.get_leading_words(leading_phrase=splitted[0],
-                                               n_words=2)
+                                               n_words=word_width)
 
         following_words = self.get_following_words(following_phrase=splitted[1],
-                                                   n_words=2)
+                                                   n_words=word_width)
 
         return leading_words, following_words
 
     def analyse(self, samples_list: list):
-        """Analse the given data according to basic statistical measures.
-           Summation of general information regarding a city from corpus.
+        """Analyse the given data according to basic statistical measures.
+           Summation of general information, which means the total amount of
+           samples, regarding a city from corpus.
 
         Args:
             samples_list (list): List of dictionaries with corpus data
 
         Returns:
-            data (list): Retrieved data from preseea
+            data (list): Retrieved data from PRESEEA
         """
-        n_samples = self.retrieve_phrase_info()
-        data = {'Total samples': n_samples}
-        data['Leading'] = None
-        data['Following'] = None
+        # Get total amount of samples for that city
+        n_samples_city = self.retrieve_city_info()
+        data = {'Total samples': n_samples_city}
+
+        # Get the leading and following words for each search phrase
+        data['Leading'] = [None]*len(samples_list)
+        data['Following'] = [None]*len(samples_list)
 
         if type(samples_list) is not list:
             Warning("No samples list introduced! City might not be available.")
         else:
-            lead_list = [None]*len(samples_list)
-            post_list = [None]*len(samples_list)
-
             for idx, sample in enumerate(samples_list):
-                lead_list[idx], post_list[idx] = self.get_environment_words(sample)
+                lead, follow = self.get_environment_words(sample)
+                data['Leading'][idx] = lead
+                data['Following'][idx] = follow
 
-            data['Leading'] = lead_list
-            data['Following'] = post_list
+        # Add basic meta information
+        data['Name'] = self.get_author()
+
+        # Update meta information regarding verbs
+        data["Leading verbs"] = self.get_verbs(data['Leading'])
+        data["Following verbs"] = self.get_verbs(data['Following'])
 
         return data
 
@@ -524,3 +700,32 @@ class PRESEEA(Corpus):
         number_cities = len(city_list)
 
         return number_cities
+
+    def create_report(self, city: str, phrase: str):
+        """Create a .csv file as a report for the
+           phrases and their corresponding analysis
+           based on the PRESEEA corpus data for
+           the given city.
+
+        Args:
+            city (str): A city as feature in the corpus
+            phrase (str): A phrase which has to be found
+                in the corpus
+        """
+        # Define search issue with filters and phrase
+        filter_name = self.set_filter(city=city,
+                                      gender="all",  # "Hombre",
+                                      age="all",  # "Grupo 1",
+                                      education="all",  # "Bajo",
+                                      phrase=phrase)
+
+        # Get data via scrapy framework as API
+        sample_list = self.retrieve_phrase_data()
+
+        # Get meta information from the retrieved data
+        meta_data = self.analyse(sample_list)
+
+        # Write data with stats into .csv file
+        self.write_csv(file_name="{}.csv".format(filter_name),
+                       data=sample_list,
+                       meta=meta_data)

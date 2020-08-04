@@ -126,10 +126,45 @@ class TestCorpusPreseeaClass(unittest.TestCase):
 
         leading_list, following_list = self.corpus_1.get_environment_words({'text': test_phrase})
 
-        self.assertEqual(len(leading_list), 2)
-        self.assertEqual(len(following_list), 2)
+        self.assertEqual(len(leading_list), 3)
+        self.assertEqual(len(following_list), 3)
 
-    @mock.patch("preseeapy.CorpusPreseea.PRESEEA.retrieve_phrase_info",
+    def test_classify_words_as_verbs(self):
+        test_list = ['test', 'andar']
+        classified_verbs = self.corpus_1.classify_words_as_verbs(test_list)
+        self.assertEqual(classified_verbs['1ps_sg'], None)
+
+        test_list = ['echan', 'voy']
+        classified_verbs = self.corpus_1.classify_words_as_verbs(test_list)
+        self.assertEqual(classified_verbs['1ps_sg'], test_list[1])
+
+    def test_is_3person_plural(self):
+        test_word = 'me'
+        is_3p_pl_verb = self.corpus_1.is_3person_plural(test_word)
+        self.assertFalse(is_3p_pl_verb)
+
+        test_word = 'eran'
+        is_3p_pl_verb = self.corpus_1.is_3person_plural(test_word)
+        self.assertTrue(is_3p_pl_verb)
+
+    def test_is_person_plural(self):
+        test_word = 'me'
+        is_2p_pl_verb = self.corpus_1.is_2person_plural(test_word)
+        self.assertFalse(is_2p_pl_verb)
+
+        test_word = 'sois'
+        is_2p_pl_verb = self.corpus_1.is_2person_plural(test_word)
+        self.assertTrue(is_2p_pl_verb)
+
+    # def test_get_verbs(self):
+    #     test_word_list = [['con', 'me'], ['eran', 'listo'], ['estais', 'locos']]
+    #     verb_list = self.corpus_1.get_verbs(test_word_list)
+
+    #     self.assertEqual(len(verb_list), len(test_word_list))
+    #     self.assertEqual(verb_list[1]['2ps_pl'], 'eran')
+    #     self.assertEqual(verb_list[2]['3ps_pl'], 'estais')
+
+    @mock.patch("preseeapy.CorpusPreseea.PRESEEA.retrieve_city_info",
                 return_value=10)
     def test_analyse(self, mocked_method):
         self.corpus_1.set_search_phrase("ustedes")
@@ -142,7 +177,7 @@ class TestCorpusPreseeaClass(unittest.TestCase):
         self.assertEqual(len(analysed_data['Following']), len(test_list))
 
         self.assertEqual(analysed_data['Leading'][0][0], "desde")
-        self.assertEqual(analysed_data['Leading'][0][1], "que")
+        self.assertEqual(analysed_data['Leading'][0][1], "desde")
         self.assertEqual(analysed_data['Following'][0][0], "erais")
         self.assertEqual(analysed_data['Following'][0][1], "pequeños")
         self.assertNotEqual(analysed_data['Following'][0][1], "pequeños test")
@@ -153,45 +188,28 @@ class TestCorpusPreseeaClass(unittest.TestCase):
     @mock.patch("preseeapy.CorpusPreseea.ProcessHandler.get_queue_content",
                 return_value=[{"test": "test"}])
     def test_retrieve_phrase_data(self, queue_content_patch):
-        _ = self.corpus_1.set_filter(city="",
-                                     gender=self._gender,
-                                     age=self._age,
-                                     education=self._education,
-                                     phrase=self._phrase)
+        """Test the retrievement of phrases for a specific filter
+           on PRESEEA
+
+        Args:
+            queue_content_patch (dictionary): The final retrievement
+                runs with a subprocess function and returns a list
+                of dictionaries. Each of which refers to a phrase.
+        """
         results = self.corpus_1.retrieve_phrase_data()
 
         # Test if responded result is empty, since no city is defined
         self.assertEqual([{"test": "test"}], results)
 
-        # _ = self.corpus_1.set_filter(city=self._city,
-        #                              gender="",
-        #                              age=self._age,
-        #                              education=self._education,
-        #                              phrase=self._phrase)
-        # results = self.corpus_1.retrieve_phrase_data()
-
-        # # Test if responded result is empty, since no gender is defined
-        # self.assertEqual([], results)
-
-        # _ = self.corpus_1.set_filter(city=self._city,
-        #                              gender=self._gender,
-        #                              age=self._age,
-        #                              education=self._education,
-        #                              phrase="")
-        # results = self.corpus_1.retrieve_phrase_data()
-
-        # # Test if responded result is empty, since no phrase is defined
-        # self.assertEqual([], results)
-
     @mock.patch("preseeapy.CorpusPreseea.PRESEEA.retrieve_phrase_data",
                   return_value=[{"test": "test"}, {"test": "test"}])
-    def test_retrieve_phrase_info(self, mocked_list):
+    def test_retrieve_city_info(self, mocked_list):
         self.corpus_1.set_city('Madrid')
-        n_samples = self.corpus_1.retrieve_phrase_info()
+        n_samples = self.corpus_1.retrieve_city_info()
         self.assertEqual(len(mocked_list.return_value), n_samples)
 
         self.corpus_1.set_city('Unavailable')
-        n_test = self.corpus_1.retrieve_phrase_info()
+        n_test = self.corpus_1.retrieve_city_info()
         self.assertIsNone(n_test)
 
 
