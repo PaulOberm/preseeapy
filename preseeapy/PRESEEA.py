@@ -13,54 +13,39 @@ from .utils import ProcessHandler
 
 
 class PRESEEA(Corpus):
-    """This class describes the PRESEEA Corpus and enables
-       scraping webpage: https://preseea.linguas.net/Corpus.aspx
+    """This class describes the PRESEEA corpus and enables
+       scraping its webpage: https://preseea.linguas.net/Corpus.aspx
 
     Args:
-        Corpus (class): General Corupus description
+        Corpus (class): General Corpus description
     """
 
     def __init__(self, author: str, search_phrase=""):
-        """Generate a PRESEEA Corpus instance.
+        """Generate a PRESEEA corpus instance.
 
         Args:
             search_phrase (str, optional): Phrase to search
                 within corpus database. Defaults to "".
         """
-        super().__init__('PRESEEA', author)
+        super().__init__('PRESEEA', author, search_phrase)
 
-        # Open PRESEEA configuration file
+        # Open PRESEEA configuration file to load available features
         with open('preseeapy/preseea.json', 'r') as file:
             self._feature_dict = json.load(file)
 
+        # PRESEEA specifc filter values
         self._city = ""
         self._gender = ""
         self._age = ""
         self._education = ""
 
-        self.SET_PROCESS = False
-
-        self.city_list = self.get_all_cities()
-        self._search_phrase = search_phrase
-
-    def set_search_phrase(self, phrase: str):
-        """Set phrase to be searched within the Corus
-
-        Args:
-            phrase (str): Complete phrase with spaces e.g.
-        """
-        if type(phrase) is not str:
-            raise ValueError('Phrase has to be of type string!')
-        if any(umlaut in phrase for umlaut in ['ä', 'ö']):
-            raise Warning('Spanish phrases should not contain umlauts')
-
-        self._search_phrase = phrase
-
     def retrieve_phrase_data(self) -> list:
         """Retrieve phrase data with a separate process.
 
         Returns:
-            list: List of dictionaries with phrases and PRESEEA metadata
+            list: List of dictionaries with phrases
+                and PRESEEA metadata
+                meta: date, sample number, country
         """
         # Initialize a subprocess instance
         attach_function = self._retrieve_phrase_data_subprocess
@@ -73,8 +58,7 @@ class PRESEEA(Corpus):
         return phrase_list
 
     def retrieve_city_info(self) -> int:
-        """Get general information from referring to
-           samples from a specific city
+        """Get general information about a city.
 
         Args:
             n_total (int): Total number of samples for a city
@@ -84,12 +68,39 @@ class PRESEEA(Corpus):
             Warning('City not available in Corpus.')
             return None
 
-        # Get general information concerning this phrases
+        # Number of samples per city
+        n_total = self.get_number_city_samples()
+
+        return n_total
+
+    def get_number_city_samples(self) -> int:
+        """Get number of available samples for a city.
+
+        Returns:
+            n_total (int): Total number of samples for a city
+        """
+        # Temporarily save search phrase
         temp_search_phrase = self._search_phrase
+        # Use empty search phrase to get available samples
         self._search_phrase = " "
+
+        # Get number of samples for that phrase
+        n_total = self.get_number_samples()
+
+        # Set back correct search phrase
+        self._search_phrase = temp_search_phrase
+
+        return n_total
+
+    def get_number_samples(self) -> int:
+        """Get number of samples for a specific phrase.
+
+        Returns:
+            [int]: Number of samples for given phrase
+                and filter
+        """
         total_list = self.retrieve_phrase_data()
         n_total = len(total_list)
-        self._search_phrase = temp_search_phrase
 
         return n_total
 
@@ -160,8 +171,6 @@ class PRESEEA(Corpus):
             check_filters = False
         if self._search_phrase == "":
             check_filters = False
-
-        print('Parameters checked: {}'.format(str(check_filters)))
 
         return check_filters
 
@@ -393,6 +402,8 @@ class PRESEEA(Corpus):
             file_name += '.csv'
 
         # Write into csv file
+        if not os.path.exists(file_name.split('/')[0]):
+            os.makedirs(file_name.split('/')[0])
         with open(file_name, 'w', newline='') as file:
             writer = csv.writer(file)
 
@@ -544,7 +555,6 @@ class PRESEEA(Corpus):
         Args:
             name (str): Name of the city the corpus should be filtered on
         """
-        # city_list = self.get_all_cities()
         city_list = list(self._feature_dict['City'].keys())
         if name in city_list:
             self._city = name
@@ -726,6 +736,6 @@ class PRESEEA(Corpus):
         meta_data = self.analyse(sample_list)
 
         # Write data with stats into .csv file
-        self.write_csv(file_name="{}.csv".format(filter_name),
+        self.write_csv(file_name="report/{}.csv".format(filter_name),
                        data=sample_list,
                        meta=meta_data)

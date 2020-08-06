@@ -1,2 +1,2 @@
 from .CorpusDefinition import Corpus
-from .CorpusPreseea import PRESEEA
+from .PRESEEA import PRESEEA

@@ -1,4 +1,4 @@
-from preseeapy.CorpusPreseea import PRESEEA
+from preseeapy.PRESEEA import PRESEEA
 
 # Get a PRESEEA instance
 corpus_preseea = PRESEEA(author='Obermayer Paul')

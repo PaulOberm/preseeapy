@@ -7,7 +7,7 @@ except(IOError, ImportError):
     long_description = open('README.md').read()
 
 setup(name='preseeapy',
-      version='1.2',
+      version='1.3',
       description='Corpus data processing for PRESEEA',
       long_description=long_description,
       packages=['preseeapy'],

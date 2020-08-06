@@ -1,8 +1,7 @@
 import unittest
 import mock
-from mock import patch
-from preseeapy.CorpusPreseea import ProcessHandler
-from preseeapy.CorpusPreseea import PRESEEA
+from preseeapy.utils import ProcessHandler
+from preseeapy.PRESEEA import PRESEEA
 
 
 class TestCorpusPreseeaClass(unittest.TestCase):
@@ -12,12 +11,12 @@ class TestCorpusPreseeaClass(unittest.TestCase):
         self._age = "young"
         self._education = "high"
         self._phrase = "se "
-        self.corpus_1 = PRESEEA()
+        self.corpus_1 = PRESEEA("test", " ")
 
         self.data = [{"text": "test",
-                     "label": "test",
-                     "date": "test",
-                     "country": "test"}]
+                      "label": "test",
+                      "date": "test",
+                      "country": "test"}]
 
     def test_get_corpus_name(self):
         self.assertEqual(self.corpus_1.get_corpus_name(), 'PRESEEA')
@@ -202,7 +201,23 @@ class TestCorpusPreseeaClass(unittest.TestCase):
         self.assertEqual([{"test": "test"}], results)
 
     @mock.patch("preseeapy.CorpusPreseea.PRESEEA.retrieve_phrase_data",
-                  return_value=[{"test": "test"}, {"test": "test"}])
+                return_value=[{"test": "test"}, {"test": "test"}])
+    def test_get_number_city_samples(self, retrieved_sample_list):
+        n_samples = 2
+        search_phrase = "Hola"
+        self.corpus_1.set_search_phrase(search_phrase)
+
+        # Function under test
+        n_sample_test = self.corpus_1.get_number_samples()
+
+        # Assert correct response
+        self.assertEqual(n_samples, n_sample_test)
+
+        # Assert unchanged search phrase
+        self.assertEqual(self.corpus_1.get_search_phrase(), search_phrase)
+
+    @mock.patch("preseeapy.CorpusPreseea.PRESEEA.retrieve_phrase_data",
+                return_value=[{"test": "test"}, {"test": "test"}])
     def test_retrieve_city_info(self, mocked_list):
         self.corpus_1.set_city('Madrid')
         n_samples = self.corpus_1.retrieve_city_info()
@@ -212,6 +227,10 @@ class TestCorpusPreseeaClass(unittest.TestCase):
         n_test = self.corpus_1.retrieve_city_info()
         self.assertIsNone(n_test)
 
+    @mock.patch("preseeapy.CorpusPreseea.PRESEEA.retrieve_phrase_data",
+                return_value=[{'label': 'MADR_H13_013', 'text': '">[ Sin coincidencias de texto ]</span>', 'date': '2008-02-27', 'country': 'España'}, {'label': 'MADR_H23_033', 'text': '">[ Sin coincidencias de texto ]</span>', 'date': '2008-02-27', 'country': 'España'}, {'label': 'MADR_H33_049', 'text': '">[ Sin coincidencias de texto ]</span>', 'date': '2007-09-06', 'country': 'España'}, {'label': 'MADR_M13_018', 'text': '">[ Sin coincidencias de texto ]</span>', 'date': '2008-04-20', 'country': 'España'}, {'label': 'MADR_M23_034', 'text': '">[ Sin coincidencias de texto ]</span>', 'date': '2008-06-24', 'country': 'España'}, {'label': 'MADR_M33_054', 'text': '">[ Sin coincidencias de texto ]</span>', 'date': '2008-09-23', 'country': 'España'}, {'label': ' MADR_H12_007', 'text': '">[ Sin coincidencias de texto ]</span>', 'date': '2012-07-11', 'country': 'España'}, {'label': ' MADR_H22_026', 'text': '">[ Sin coincidencias de texto ]</span>', 'date': '2011-03-16', 'country': 'España'}, {'label': ' MADR_H32_043', 'text': '">[ Sin coincidencias de texto ]</span>', 'date': '2011-05-03', 'country': 'España'}, {'label': ' MADR_M12_010', 'text': '">[ Sin coincidencias de texto ]</span>', 'date': '2013-12-12', 'country': 'España'}, {'label': ' MADR_M22_030', 'text': '">[ Sin coincidencias de texto ]</span>', 'date': '2009-11-10', 'country': 'España'}, {'label': ' MADR_M32_047', 'text': '">[ Sin coincidencias de texto ]</span>', 'date': '2011-08-10', 'country': 'España'}, {'label': ' MADR_H11_002', 'text': '">[ Sin coincidencias de texto ]</span>', 'date': '2008-12-04', 'country': 'España'}, {'label': ' MADR_H21_020', 'text': '">[ Sin coincidencias de texto ]</span>', 'date': '2009-02-23', 'country': 'España'}, {'label': ' MADR_H31_037', 'text': '">[ Sin coincidencias de texto ]</span>', 'date': '2009-01-29', 'country': 'España'}, {'label': ' MADR_ M11_004', 'text': '">[ Sin coincidencias de texto ]</span>', 'date': '2008-11-25', 'country': 'España'}, {'label': ' MADR_M21_024', 'text': '">[ Sin coincidencias de texto ]</span>', 'date': '2008-12-15', 'country': 'España'}, {'label': ' MADR_M31_040', 'text': '">[ Sin coincidencias de texto ]</span>', 'date': '2009-02-17', 'country': 'España'}])
+    def test_analyse_madrid(self, samples_list_madrid):
+        pass
 
 if __name__ == '__main__':
     unittest.main()
