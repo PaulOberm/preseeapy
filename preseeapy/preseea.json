@@ -21,7 +21,7 @@
         "Puerto Rico": ["San Juan de Puerto Rico"],
         "Guatemala": ["Guatemala"]
     },
-    "Sex": ["Hombre", "Mujer"],
+    "Gender": ["Hombre", "Mujer"],
     "Age": ["Grupo 1", "Grupo 2", "Grupo 3"],
     "Education": ["Alto", "Medio", "Bajo"],
     "City": {

@@ -7,9 +7,9 @@ from preseeapy.PRESEEA import PRESEEA
 class TestCorpusPreseeaClass(unittest.TestCase):
     def setUp(self):
         self._city = "Pereira"
-        self._gender = "female"
-        self._age = "young"
-        self._education = "high"
+        self._gender = "Mujer"
+        self._age = "Grupo 1"
+        self._education = "Alto"
         self._phrase = "se "
         self.corpus_1 = PRESEEA("test", " ")
 
@@ -41,7 +41,7 @@ class TestCorpusPreseeaClass(unittest.TestCase):
 
     def test_corpus_definition(self):
         filter_list = list(self.corpus_1._feature_dict.keys())
-        self.assertEqual(filter_list[1], 'Sex')
+        self.assertEqual(filter_list[1], 'Gender')
         self.assertEqual(filter_list[2], 'Age')
         self.assertEqual(filter_list[3], 'Education')
         self.assertEqual(filter_list[4], 'City')
@@ -88,11 +88,12 @@ class TestCorpusPreseeaClass(unittest.TestCase):
         self.assertRaises(ValueError, ProcessHandler, 5)
 
     def test_set_filter(self):
-        filter_name = self.corpus_1.set_filter(city=self._city,
-                                               gender=self._gender,
-                                               age=self._age,
-                                               education=self._education,
-                                               phrase=self._phrase)
+        self.corpus_1.set_filter(city=self._city,
+                                 gender=self._gender,
+                                 age=self._age,
+                                 education=self._education,
+                                 phrase=self._phrase)
+        filter_name = str(self.corpus_1)
         # Test if responded filter name contains filter attributes
         self.assertIn(self._city, filter_name)
         self.assertIn(self._gender, filter_name)
@@ -163,7 +164,7 @@ class TestCorpusPreseeaClass(unittest.TestCase):
     #     self.assertEqual(verb_list[1]['2ps_pl'], 'eran')
     #     self.assertEqual(verb_list[2]['3ps_pl'], 'estais')
 
-    @mock.patch("preseeapy.CorpusPreseea.PRESEEA.retrieve_city_info",
+    @mock.patch("preseeapy.PRESEEA.retrieve_city_info",
                 return_value=10)
     def test_analyse(self, mocked_method):
         self.corpus_1.set_search_phrase("ustedes")
@@ -184,7 +185,7 @@ class TestCorpusPreseeaClass(unittest.TestCase):
         self.assertEqual(analysed_data['Total samples'],
                          mocked_method.return_value)
 
-    @mock.patch("preseeapy.CorpusPreseea.ProcessHandler.get_queue_content",
+    @mock.patch("preseeapy.utils.ProcessHandler.get_queue_content",
                 return_value=[{"test": "test"}])
     def test_retrieve_phrase_data(self, queue_content_patch):
         """Test the retrievement of phrases for a specific filter
@@ -200,7 +201,7 @@ class TestCorpusPreseeaClass(unittest.TestCase):
         # Test if responded result is empty, since no city is defined
         self.assertEqual([{"test": "test"}], results)
 
-    @mock.patch("preseeapy.CorpusPreseea.PRESEEA.retrieve_phrase_data",
+    @mock.patch("preseeapy.PRESEEA.retrieve_phrase_data",
                 return_value=[{"test": "test"}, {"test": "test"}])
     def test_get_number_city_samples(self, retrieved_sample_list):
         n_samples = 2
@@ -216,7 +217,7 @@ class TestCorpusPreseeaClass(unittest.TestCase):
         # Assert unchanged search phrase
         self.assertEqual(self.corpus_1.get_search_phrase(), search_phrase)
 
-    @mock.patch("preseeapy.CorpusPreseea.PRESEEA.retrieve_phrase_data",
+    @mock.patch("preseeapy.PRESEEA.retrieve_phrase_data",
                 return_value=[{"test": "test"}, {"test": "test"}])
     def test_retrieve_city_info(self, mocked_list):
         self.corpus_1.set_city('Madrid')
@@ -227,7 +228,7 @@ class TestCorpusPreseeaClass(unittest.TestCase):
         n_test = self.corpus_1.retrieve_city_info()
         self.assertIsNone(n_test)
 
-    @mock.patch("preseeapy.CorpusPreseea.PRESEEA.retrieve_phrase_data",
+    @mock.patch("preseeapy.PRESEEA.retrieve_phrase_data",
                 return_value=[{'label': 'MADR_H13_013', 'text': '">[ Sin coincidencias de texto ]</span>', 'date': '2008-02-27', 'country': 'España'}, {'label': 'MADR_H23_033', 'text': '">[ Sin coincidencias de texto ]</span>', 'date': '2008-02-27', 'country': 'España'}, {'label': 'MADR_H33_049', 'text': '">[ Sin coincidencias de texto ]</span>', 'date': '2007-09-06', 'country': 'España'}, {'label': 'MADR_M13_018', 'text': '">[ Sin coincidencias de texto ]</span>', 'date': '2008-04-20', 'country': 'España'}, {'label': 'MADR_M23_034', 'text': '">[ Sin coincidencias de texto ]</span>', 'date': '2008-06-24', 'country': 'España'}, {'label': 'MADR_M33_054', 'text': '">[ Sin coincidencias de texto ]</span>', 'date': '2008-09-23', 'country': 'España'}, {'label': ' MADR_H12_007', 'text': '">[ Sin coincidencias de texto ]</span>', 'date': '2012-07-11', 'country': 'España'}, {'label': ' MADR_H22_026', 'text': '">[ Sin coincidencias de texto ]</span>', 'date': '2011-03-16', 'country': 'España'}, {'label': ' MADR_H32_043', 'text': '">[ Sin coincidencias de texto ]</span>', 'date': '2011-05-03', 'country': 'España'}, {'label': ' MADR_M12_010', 'text': '">[ Sin coincidencias de texto ]</span>', 'date': '2013-12-12', 'country': 'España'}, {'label': ' MADR_M22_030', 'text': '">[ Sin coincidencias de texto ]</span>', 'date': '2009-11-10', 'country': 'España'}, {'label': ' MADR_M32_047', 'text': '">[ Sin coincidencias de texto ]</span>', 'date': '2011-08-10', 'country': 'España'}, {'label': ' MADR_H11_002', 'text': '">[ Sin coincidencias de texto ]</span>', 'date': '2008-12-04', 'country': 'España'}, {'label': ' MADR_H21_020', 'text': '">[ Sin coincidencias de texto ]</span>', 'date': '2009-02-23', 'country': 'España'}, {'label': ' MADR_H31_037', 'text': '">[ Sin coincidencias de texto ]</span>', 'date': '2009-01-29', 'country': 'España'}, {'label': ' MADR_ M11_004', 'text': '">[ Sin coincidencias de texto ]</span>', 'date': '2008-11-25', 'country': 'España'}, {'label': ' MADR_M21_024', 'text': '">[ Sin coincidencias de texto ]</span>', 'date': '2008-12-15', 'country': 'España'}, {'label': ' MADR_M31_040', 'text': '">[ Sin coincidencias de texto ]</span>', 'date': '2009-02-17', 'country': 'España'}])
     def test_analyse_madrid(self, samples_list_madrid):
         pass
