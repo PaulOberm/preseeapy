@@ -129,32 +129,32 @@ class TestCorpusPreseeaClass(unittest.TestCase):
         self.assertEqual(len(leading_list), 3)
         self.assertEqual(len(following_list), 3)
 
-    def test_classify_words_as_verbs(self):
-        test_list = ['test', 'andar']
-        classified_verbs = self.corpus_1.classify_words_as_verbs(test_list)
-        self.assertEqual(classified_verbs['1ps_sg'], None)
+    # def test_classify_words_as_verbs(self):
+    #     test_list = ['test', 'andar']
+    #     classified_verbs = self.corpus_1.classify_words_as_verbs(test_list)
+    #     self.assertEqual(classified_verbs['1ps_sg'], None)
 
-        test_list = ['echan', 'voy']
-        classified_verbs = self.corpus_1.classify_words_as_verbs(test_list)
-        self.assertEqual(classified_verbs['1ps_sg'], test_list[1])
+    #     test_list = ['echan', 'voy']
+    #     classified_verbs = self.corpus_1.classify_words_as_verbs(test_list)
+    #     self.assertEqual(classified_verbs['1ps_sg'], test_list[1])
 
-    def test_is_3person_plural(self):
-        test_word = 'me'
-        is_3p_pl_verb = self.corpus_1.is_3person_plural(test_word)
-        self.assertFalse(is_3p_pl_verb)
+    # def test_is_3person_plural(self):
+    #     test_word = 'me'
+    #     is_3p_pl_verb = self.corpus_1.is_3person_plural(test_word)
+    #     self.assertFalse(is_3p_pl_verb)
 
-        test_word = 'eran'
-        is_3p_pl_verb = self.corpus_1.is_3person_plural(test_word)
-        self.assertTrue(is_3p_pl_verb)
+    #     test_word = 'eran'
+    #     is_3p_pl_verb = self.corpus_1.is_3person_plural(test_word)
+    #     self.assertTrue(is_3p_pl_verb)
 
-    def test_is_person_plural(self):
-        test_word = 'me'
-        is_2p_pl_verb = self.corpus_1.is_2person_plural(test_word)
-        self.assertFalse(is_2p_pl_verb)
+    # def test_is_person_plural(self):
+    #     test_word = 'me'
+    #     is_2p_pl_verb = self.corpus_1.is_2person_plural(test_word)
+    #     self.assertFalse(is_2p_pl_verb)
 
-        test_word = 'sois'
-        is_2p_pl_verb = self.corpus_1.is_2person_plural(test_word)
-        self.assertTrue(is_2p_pl_verb)
+    #     test_word = 'sois'
+    #     is_2p_pl_verb = self.corpus_1.is_2person_plural(test_word)
+    #     self.assertTrue(is_2p_pl_verb)
 
     # def test_get_verbs(self):
     #     test_word_list = [['con', 'me'], ['eran', 'listo'], ['estais', 'locos']]
