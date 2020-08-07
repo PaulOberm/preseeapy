@@ -15,4 +15,4 @@ class EducationCorpusMixin():
             self._education = ""
 
     def __str__(self):
-        return "education:{}".format(self._education)
+        return "education_{}".format(self._education)

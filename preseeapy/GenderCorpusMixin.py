@@ -15,4 +15,4 @@ class GenderCorpusMixin():
             self._gender = ""
 
     def __str__(self):
-        return "gender:{}".format(self._gender)
+        return "gender_{}".format(self._gender)
