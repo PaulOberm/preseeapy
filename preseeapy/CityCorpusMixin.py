@@ -125,4 +125,4 @@ class CityCorpusMixin():
         return city_list
 
     def __str__(self):
-        return "city:{}".format(self._city)
+        return "city_{}".format(self._city)

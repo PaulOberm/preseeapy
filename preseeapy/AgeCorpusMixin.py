@@ -18,4 +18,4 @@ class AgeCorpusMixin():
             self._age = ""
 
     def __str__(self):
-        return "age:{}".format(self._age)
+        return "age_{}".format(self._age)

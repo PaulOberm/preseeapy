@@ -1,9 +1,29 @@
 class VerbClassifier():
-    def __init__(self, word_list: str):
+    def __init__(self, word_list: list):
         self.set_word_list(word_list)
 
-    def set_word_list(self, word_list: str):
-        self._word_list = word_list
+    def set_word_list(self, word_list: list):
+        """Set the class instances list of words.
+           List is checked by type beforehand.
+
+        Args:
+            word_list (list): Input list of possible words
+        """
+        checked_list = []
+        for word in word_list:
+            if type(word) != str:
+                continue
+            if len(word) < 2:
+                continue
+            if (word[-1] == "?" or word[-1] == "!"):
+                word = word[:-1]
+
+            checked_list.append(word)
+
+        self._word_list = checked_list
+
+    def get_word_list(self) -> list:
+        return self._word_list
 
     def _check_verb(func):
         def wrapper(self, word: str) -> bool:
@@ -13,16 +33,33 @@ class VerbClassifier():
             if word in exception_list:
                 is_verb_class = False
             else:
-                for ending in ending_list:
-                    width = len(ending)
-                    if len(word)>1 and (word[-1]=="?" or word[-1]=="!"):
-                        word = word[:-1]
+                # If word ends with those endings, it belongs to that class
+                is_verb_class = self._word_has_ending(word, ending_list)
 
-                    if ending in word[-width:]:
-                        is_verb_class = True
-                        break
             return is_verb_class
         return wrapper
+
+    def _word_has_ending(self, word: str, ending_list: list) -> bool:
+        """Check if a given word ends with a string in the ending list
+
+        Args:
+            word (str): Word to be checked
+            ending_list (list): Available endings to be classified
+                as a verb of a specific class
+
+        Returns:
+            bool: Word belongs to a class defined by endings
+        """
+        for ending in ending_list:
+            width = len(ending)
+
+            if ending in word[-width:]:
+                has_ending = True
+                break
+        else:
+            has_ending = False
+
+        return has_ending
 
     @_check_verb
     def is_1person_singular(self, word: str) -> bool:

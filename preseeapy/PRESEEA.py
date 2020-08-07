@@ -14,6 +14,7 @@ from .AgeCorpusMixin import AgeCorpusMixin
 from .GenderCorpusMixin import GenderCorpusMixin
 from .EducationCorpusMixin import EducationCorpusMixin
 from .VerbClassifier import VerbClassifier
+from .WordClassifier import WordClassifier
 
 
 class PRESEEA(Corpus, CityCorpusMixin, AgeCorpusMixin,
@@ -44,16 +45,13 @@ class PRESEEA(Corpus, CityCorpusMixin, AgeCorpusMixin,
         self.set_age("")
         self.set_education("")
 
-        self.NO_WORD_LIST = ["", "/", "…"]
-        self.WORD_RANGE = 3
-
     def __str__(self):
         return "PRESEEA" + "_"\
             + CityCorpusMixin.__str__(self) + "_"\
             + GenderCorpusMixin.__str__(self) + "_"\
             + AgeCorpusMixin.__str__(self) + "_"\
             + EducationCorpusMixin.__str__(self) + "_"\
-            + "Phrase:" + self.get_search_phrase()
+            + "Phrase_" + self.get_search_phrase()
 
     def retrieve_phrase_data(self) -> list:
         """Retrieve phrase data with a separate process.
@@ -118,11 +116,11 @@ class PRESEEA(Corpus, CityCorpusMixin, AgeCorpusMixin,
         if self._check_filter_parameters():
             try:
                 defered = runner.crawl(PreseeabotSpider,
-                            self._search_phrase,
-                            self._city,
-                            self._gender,
-                            self._education,
-                            self._age)
+                                       self._search_phrase,
+                                       self._city,
+                                       self._gender,
+                                       self._education,
+                                       self._age)
 
                 defered.addBoth(lambda _: reactor.stop())
 
@@ -231,13 +229,12 @@ class PRESEEA(Corpus, CityCorpusMixin, AgeCorpusMixin,
 
         return verb_list
 
-    def write_csv(self, data: list, meta: dict, file_name: str):
+    def write_csv(self, data: list, meta: dict):
         """Write current phrases' search results into csv
 
         Args:
             data (dict): retrieved data as dictionary
             meta_data (dict): General information referring corpus data
-            file_name (str): csv file name
         """
         if data is None:
             return None
@@ -250,10 +247,8 @@ class PRESEEA(Corpus, CityCorpusMixin, AgeCorpusMixin,
                 raise KeyError('Unknown dictionary key: \
                                 {} in crawled results!'.format(filter_key))
 
-        if '.csv' not in file_name:
-            file_name += '.csv'
-
         # Write into csv file
+        file_name = "report/{}.csv".format(self.__str__())
         if not os.path.exists(file_name.split('/')[0]):
             os.makedirs(file_name.split('/')[0])
         with open(file_name, 'w', newline='') as file:
@@ -295,91 +290,6 @@ class PRESEEA(Corpus, CityCorpusMixin, AgeCorpusMixin,
 
         return os.getcwd() + '/' + file_name
 
-    def _is_word(self, word: str) -> bool:
-        """This method checks if a string is a word
-
-        Args:
-            word (str): String to be checked
-
-        Returns:
-            bool: Is string a word
-        """
-        is_word = False
-        if word not in self.NO_WORD_LIST:
-            is_word = True
-
-        return is_word
-
-    def _get_word_list(self, phrase: str) -> list:
-        """Get a list of words from a complete phrase as string
-
-        Args:
-            phrase (str): Complete string describing a phrase
-
-        Returns:
-            list: List of single words within a phrase
-        """
-        word_list = phrase.split(" ")
-        word_list = [word for word in word_list if self._is_word(word)]
-
-        return word_list
-
-    def get_leading_words(self, phrase: str, n_words: int) -> list:
-        """Get a number of leading words from phrase in
-           front of a search phrase
-
-        Args:
-            phrase (str): Front phrase, in front of search phrase
-            n_words (int): Number of frontal words
-
-        Returns:
-            list: Frontal words
-        """
-        word_list = self._get_word_list(phrase)
-
-        if len(word_list) > n_words:
-            word_list = word_list[-n_words:]
-
-        return word_list
-
-    def get_following_words(self, phrase: str, n_words: int) -> list:
-        """Get a number of following words from phrase
-           after a search phrase
-
-        Args:
-            phrase (str): Posterior phrase, after the search phrase
-            n_words (int): Number of posterior words
-
-        Returns:
-            list: Posterior words
-        """
-        word_list = self._get_word_list(phrase)
-
-        if len(word_list) > n_words:
-            word_list = word_list[:n_words]
-
-        return word_list
-
-    def get_environment_words(self, sample: dict) -> (list, list):
-        """Get leading and following words from phrase
-           around the search phrase.
-
-        Args:
-            phrase (dict): Phrase around the search phrase
-
-        Returns:
-            list: List of leading words
-            list: List of following words
-        """
-        splitted = sample['text'].split(self._search_phrase)
-        leading_words = self.get_leading_words(phrase=splitted[0],
-                                               n_words=self.WORD_RANGE)
-
-        following_words = self.get_following_words(phrase=splitted[1],
-                                                   n_words=self.WORD_RANGE)
-
-        return leading_words, following_words
-
     def analyse(self, samples_list: list):
         """Analyse the given data according to basic statistical measures.
            Summation of general information, which means the total amount of
@@ -402,8 +312,10 @@ class PRESEEA(Corpus, CityCorpusMixin, AgeCorpusMixin,
         if type(samples_list) is not list:
             Warning("No samples list introduced! City might not be available.")
         else:
+            classfier = WordClassifier("")
             for idx, sample in enumerate(samples_list):
-                lead, follow = self.get_environment_words(sample)
+                classfier.set_phrase(sample['text'])
+                lead, follow = classfier.get_environment_words(self._search_phrase)
                 data['Leading'][idx] = lead
                 data['Following'][idx] = follow
 
@@ -432,16 +344,6 @@ class PRESEEA(Corpus, CityCorpusMixin, AgeCorpusMixin,
 
         return '{}, {}, {}, {}'.format(city, gender, age, education)
 
-    def get_corpus_countries(self):
-        """Return the Corpus' establishing countries.
-
-        Returns:
-            list: List of strings of the countries
-        """
-        countries = self._feature_dict["Country"].keys()
-
-        return countries
-
     def create_report(self, city: str, phrase: str):
         """Create a .csv file as a report for the
            phrases and their corresponding analysis
@@ -455,9 +357,9 @@ class PRESEEA(Corpus, CityCorpusMixin, AgeCorpusMixin,
         """
         # Define search issue with filters and phrase
         self.set_filter(city=city,
-                        gender="all",  # "Hombre",
-                        age="all",  # "Grupo 1",
-                        education="all",  # "Bajo",
+                        gender="all",  # "Hombre"
+                        age="all",  # "Grupo 1"
+                        education="all",  # "Bajo"
                         phrase=phrase)
 
         # Get data via scrapy framework as API
@@ -467,7 +369,5 @@ class PRESEEA(Corpus, CityCorpusMixin, AgeCorpusMixin,
         meta_data = self.analyse(sample_list)
 
         # Write data with stats into .csv file
-        filter_name = self.__str__()
-        self.write_csv(file_name="report/{}.csv".format(filter_name),
-                       data=sample_list,
+        self.write_csv(data=sample_list,
                        meta=meta_data)

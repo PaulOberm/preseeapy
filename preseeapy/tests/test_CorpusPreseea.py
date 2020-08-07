@@ -83,6 +83,14 @@ class TestCorpusPreseeaClass(unittest.TestCase):
                                            file_name=file_name)
         self.assertIn(file_name + '.csv', response)
 
+    # def test_get_verbs(self):
+    #     test_word_list = [['con', 'me'], ['eran', 'listo'], ['estais', 'locos']]
+    #     verb_list = self.corpus_1.get_verbs(test_word_list)
+
+    #     self.assertEqual(len(verb_list), len(test_word_list))
+    #     self.assertEqual(verb_list[1]['2ps_pl'], 'eran')
+    #     self.assertEqual(verb_list[2]['3ps_pl'], 'estais')
+
     # @mock.patch("ProcessHandler.get_queue_content", [{"test: test"}])
     def test_ProcessHandler(self):
         self.assertRaises(ValueError, ProcessHandler, 5)
@@ -128,41 +136,6 @@ class TestCorpusPreseeaClass(unittest.TestCase):
 
         self.assertEqual(len(leading_list), 3)
         self.assertEqual(len(following_list), 3)
-
-    # def test_classify_words_as_verbs(self):
-    #     test_list = ['test', 'andar']
-    #     classified_verbs = self.corpus_1.classify_words_as_verbs(test_list)
-    #     self.assertEqual(classified_verbs['1ps_sg'], None)
-
-    #     test_list = ['echan', 'voy']
-    #     classified_verbs = self.corpus_1.classify_words_as_verbs(test_list)
-    #     self.assertEqual(classified_verbs['1ps_sg'], test_list[1])
-
-    # def test_is_3person_plural(self):
-    #     test_word = 'me'
-    #     is_3p_pl_verb = self.corpus_1.is_3person_plural(test_word)
-    #     self.assertFalse(is_3p_pl_verb)
-
-    #     test_word = 'eran'
-    #     is_3p_pl_verb = self.corpus_1.is_3person_plural(test_word)
-    #     self.assertTrue(is_3p_pl_verb)
-
-    # def test_is_person_plural(self):
-    #     test_word = 'me'
-    #     is_2p_pl_verb = self.corpus_1.is_2person_plural(test_word)
-    #     self.assertFalse(is_2p_pl_verb)
-
-    #     test_word = 'sois'
-    #     is_2p_pl_verb = self.corpus_1.is_2person_plural(test_word)
-    #     self.assertTrue(is_2p_pl_verb)
-
-    # def test_get_verbs(self):
-    #     test_word_list = [['con', 'me'], ['eran', 'listo'], ['estais', 'locos']]
-    #     verb_list = self.corpus_1.get_verbs(test_word_list)
-
-    #     self.assertEqual(len(verb_list), len(test_word_list))
-    #     self.assertEqual(verb_list[1]['2ps_pl'], 'eran')
-    #     self.assertEqual(verb_list[2]['3ps_pl'], 'estais')
 
     @mock.patch("preseeapy.PRESEEA.retrieve_city_info",
                 return_value=10)
@@ -232,6 +205,7 @@ class TestCorpusPreseeaClass(unittest.TestCase):
                 return_value=[{'label': 'MADR_H13_013', 'text': '">[ Sin coincidencias de texto ]</span>', 'date': '2008-02-27', 'country': 'España'}, {'label': 'MADR_H23_033', 'text': '">[ Sin coincidencias de texto ]</span>', 'date': '2008-02-27', 'country': 'España'}, {'label': 'MADR_H33_049', 'text': '">[ Sin coincidencias de texto ]</span>', 'date': '2007-09-06', 'country': 'España'}, {'label': 'MADR_M13_018', 'text': '">[ Sin coincidencias de texto ]</span>', 'date': '2008-04-20', 'country': 'España'}, {'label': 'MADR_M23_034', 'text': '">[ Sin coincidencias de texto ]</span>', 'date': '2008-06-24', 'country': 'España'}, {'label': 'MADR_M33_054', 'text': '">[ Sin coincidencias de texto ]</span>', 'date': '2008-09-23', 'country': 'España'}, {'label': ' MADR_H12_007', 'text': '">[ Sin coincidencias de texto ]</span>', 'date': '2012-07-11', 'country': 'España'}, {'label': ' MADR_H22_026', 'text': '">[ Sin coincidencias de texto ]</span>', 'date': '2011-03-16', 'country': 'España'}, {'label': ' MADR_H32_043', 'text': '">[ Sin coincidencias de texto ]</span>', 'date': '2011-05-03', 'country': 'España'}, {'label': ' MADR_M12_010', 'text': '">[ Sin coincidencias de texto ]</span>', 'date': '2013-12-12', 'country': 'España'}, {'label': ' MADR_M22_030', 'text': '">[ Sin coincidencias de texto ]</span>', 'date': '2009-11-10', 'country': 'España'}, {'label': ' MADR_M32_047', 'text': '">[ Sin coincidencias de texto ]</span>', 'date': '2011-08-10', 'country': 'España'}, {'label': ' MADR_H11_002', 'text': '">[ Sin coincidencias de texto ]</span>', 'date': '2008-12-04', 'country': 'España'}, {'label': ' MADR_H21_020', 'text': '">[ Sin coincidencias de texto ]</span>', 'date': '2009-02-23', 'country': 'España'}, {'label': ' MADR_H31_037', 'text': '">[ Sin coincidencias de texto ]</span>', 'date': '2009-01-29', 'country': 'España'}, {'label': ' MADR_ M11_004', 'text': '">[ Sin coincidencias de texto ]</span>', 'date': '2008-11-25', 'country': 'España'}, {'label': ' MADR_M21_024', 'text': '">[ Sin coincidencias de texto ]</span>', 'date': '2008-12-15', 'country': 'España'}, {'label': ' MADR_M31_040', 'text': '">[ Sin coincidencias de texto ]</span>', 'date': '2009-02-17', 'country': 'España'}])
     def test_analyse_madrid(self, samples_list_madrid):
         pass
+
 
 if __name__ == '__main__':
     unittest.main()
