@@ -1,6 +1,31 @@
+from .WordClassifier import WordClassifier
+
+
 class VerbClassifier():
     def __init__(self, word_list: list):
+        self._word_classifier = WordClassifier("")
         self.set_word_list(word_list)
+
+    def set_phrase(self, phrase: str):
+        """Set string type phrase as word list
+
+        Args:
+            phrase (str): Phrase to be set as word list
+        """
+        self._word_classifier.set_phrase(phrase)
+        word_list = self._word_classifier.get_word_list()
+        self.set_word_list(word_list)
+
+    def get_environment_verbs(self, word: str) -> (list, list):
+        lead_words, follow_words = self._word_classifier.get_environment_words(word)
+
+        return_list = []
+        for word_list in [lead_words, follow_words]:
+            self.set_word_list(word_list)
+            classified_words = self.classify_verbs()
+            return_list.append(classified_words)
+
+        return return_list
 
     def set_word_list(self, word_list: list):
         """Set the class instances list of words.

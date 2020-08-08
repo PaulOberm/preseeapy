@@ -4,10 +4,13 @@ class WordClassifier():
 
         # Environmental words range
         self.WORD_RANGE = 3
-        self._word_list = self.get_word_list(phrase)
+        self._word_list = self.set_word_list(phrase)
 
     def set_phrase(self, phrase: str):
-        self._word_list = self.get_word_list(phrase)
+        self._word_list = self.set_word_list(phrase)
+
+    def get_word_list(self):
+        return self._word_list
 
     def _is_word(self, word: str) -> bool:
         """This method checks if a string is a word
@@ -24,7 +27,7 @@ class WordClassifier():
 
         return is_word
 
-    def get_word_list(self, phrase: str) -> list:
+    def set_word_list(self, phrase: str) -> list:
         """Get a list of words from a complete phrase as string
 
         Args:

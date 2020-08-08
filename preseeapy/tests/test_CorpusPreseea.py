@@ -1,6 +1,5 @@
 import unittest
 import mock
-from preseeapy.utils import ProcessHandler
 from preseeapy.PRESEEA import PRESEEA
 
 
@@ -82,18 +81,6 @@ class TestCorpusPreseeaClass(unittest.TestCase):
                                                  'Name': 'Test'},
                                            file_name=file_name)
         self.assertIn(file_name + '.csv', response)
-
-    # def test_get_verbs(self):
-    #     test_word_list = [['con', 'me'], ['eran', 'listo'], ['estais', 'locos']]
-    #     verb_list = self.corpus_1.get_verbs(test_word_list)
-
-    #     self.assertEqual(len(verb_list), len(test_word_list))
-    #     self.assertEqual(verb_list[1]['2ps_pl'], 'eran')
-    #     self.assertEqual(verb_list[2]['3ps_pl'], 'estais')
-
-    # @mock.patch("ProcessHandler.get_queue_content", [{"test: test"}])
-    def test_ProcessHandler(self):
-        self.assertRaises(ValueError, ProcessHandler, 5)
 
     def test_set_filter(self):
         self.corpus_1.set_filter(city=self._city,

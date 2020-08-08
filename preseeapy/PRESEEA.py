@@ -8,7 +8,6 @@ from .AgeCorpusMixin import AgeCorpusMixin
 from .GenderCorpusMixin import GenderCorpusMixin
 from .EducationCorpusMixin import EducationCorpusMixin
 from .VerbClassifier import VerbClassifier
-from .WordClassifier import WordClassifier
 from .ASPXTwister import ASPXTwisterClass
 from .preseeaspider.spiders.preseeabot import PreseeabotSpider
 
@@ -118,53 +117,53 @@ class PRESEEA(Corpus, CityCorpusMixin, AgeCorpusMixin,
                                      "Samples total",
                                      data['Total samples'])
 
-        # Get following verbs for 3PS_PL
-        verbs_anterior_2ps_pl = []
-        verbs_anterior_3ps_pl = []
-        for phrase in data["Leading verbs"]:
-            if phrase["2ps_pl"] is not None:
-                verbs_anterior_2ps_pl.append(phrase["2ps_pl"])
-            elif phrase["3ps_pl"] is not None:
-                verbs_anterior_3ps_pl.append(phrase["3ps_pl"])
+        key = "Leading verbs"
+        writer.writerow([key])
+        n_leading_verbs = self.write_verb_list(writer, data[key])
 
-        writer.writerow(["Leading verbs"])
-        writer.writerow(["#2PS, PL", len(verbs_anterior_2ps_pl)])
-        writer.writerow(["#3PS, PL", len(verbs_anterior_3ps_pl)])
-        len_total_1 = len(verbs_anterior_2ps_pl) + len(verbs_anterior_3ps_pl)
+        key = "Following verbs"
+        writer.writerow([key])
+        n_following_verbs = self.write_verb_list(writer, data[key])
 
-        verbs_posterior_2ps_pl = []
-        verbs_posterior_3ps_pl = []
-        for phrase in data["Following verbs"]:
-            if phrase["2ps_pl"] is not None:
-                verbs_posterior_2ps_pl.append(phrase["2ps_pl"])
-            elif phrase["3ps_pl"] is not None:
-                verbs_posterior_3ps_pl.append(phrase["3ps_pl"])
-
-        writer.writerow(["Following verbs"])
-        writer.writerow(["#2PS, PL", len(verbs_posterior_2ps_pl)])
-        writer.writerow(["#3PS, PL", len(verbs_posterior_3ps_pl)])
-        len_total_2 = len(verbs_posterior_2ps_pl) + len(verbs_posterior_3ps_pl)
-        writer.writerow(["#Verbs total", len_total_1+len_total_2])
+        writer.writerow(["#Verbs total", n_leading_verbs+n_following_verbs])
 
         return writer
 
-    def get_verbs(self, word_list: list) -> list:
-        """Get a list of verbs from a list of words
+    def write_verb_list(self, writer: csv.writer, data: list) -> int:
+        """Sum up all the verbs for each key within a single sample in the
+           data list of samples. This list is a list of dictionaries.
 
         Args:
-            word_list (list): A list of of lists of words
+            writer (csv.writer): CSV writer object
+            data (str): List of dictionaries
 
         Returns:
-            list: A sublist with verbs
+            int: Number of found verbs
         """
-        verb_list = []
-        classifier = VerbClassifier([""])
-        for sample_words in word_list:
-            classifier.set_word_list(sample_words)
-            classified_word = classifier.classify_verbs()
-            verb_list.append(classified_word)
+        sub_key_list = list(data[0].keys())
 
-        return verb_list
+        n_verbs_total = 0
+        for sub_key in sub_key_list:
+            n_verbs = self.count_words(data, sub_key)
+            writer.writerow(["#{}".format(sub_key), n_verbs])
+            n_verbs_total += n_verbs
+
+        return n_verbs
+
+    def count_words(self, word_list: list, key: str) -> int:
+        """Count the number of words as strings in a list of
+           dicts where the key is given.
+
+        Args:
+            word_list (list): [description]
+            key (str): [description]
+
+        Returns:
+            int: [description]
+        """
+        words = [word[key] for word in word_list if word[key] is not None]
+
+        return len(words)
 
     def write_csv(self, data: list, analysis_data: dict):
         """Write current phrases' search results into csv
@@ -249,23 +248,18 @@ class PRESEEA(Corpus, CityCorpusMixin, AgeCorpusMixin,
         n_samples_city = self.retrieve_city_info()
         data = {'Total samples': n_samples_city}
 
-        # Get the leading and following words for each search phrase
-        data['Leading'] = [None]*len(samples_list)
-        data['Following'] = [None]*len(samples_list)
+        data['Leading verbs'] = [None]*len(samples_list)
+        data['Following verbs'] = [None]*len(samples_list)
 
         if type(samples_list) is not list:
             Warning("No samples list introduced! City might not be available.")
         else:
-            classfier = WordClassifier("")
+            classfier = VerbClassifier("")
             for idx, sample in enumerate(samples_list):
                 classfier.set_phrase(sample['text'])
-                lead, follow = classfier.get_environment_words(self._search_phrase)
-                data['Leading'][idx] = lead
-                data['Following'][idx] = follow
-
-        # Update meta information regarding verbs
-        data["Leading verbs"] = self.get_verbs(data['Leading'])
-        data["Following verbs"] = self.get_verbs(data['Following'])
+                lead, follow = classfier.get_environment_verbs(self._search_phrase)
+                data['Leading verbs'][idx] = lead
+                data['Following verbs'][idx] = follow
 
         return data
 
