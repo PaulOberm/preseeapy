@@ -1,20 +1,16 @@
-from .CorpusDefinition import Corpus
-from twisted.internet import reactor
 import json
 import csv
 import os
-from multiprocessing import Queue
-from scrapy.signalmanager import dispatcher
-from scrapy.crawler import CrawlerRunner
-from scrapy import signals
-from .preseeaspider.spiders.preseeabot import PreseeabotSpider
 from .utils import ProcessHandler
+from .CorpusDefinition import Corpus
 from .CityCorpusMixin import CityCorpusMixin
 from .AgeCorpusMixin import AgeCorpusMixin
 from .GenderCorpusMixin import GenderCorpusMixin
 from .EducationCorpusMixin import EducationCorpusMixin
 from .VerbClassifier import VerbClassifier
 from .WordClassifier import WordClassifier
+from .ASPXTwister import ASPXTwisterClass
+from .preseeaspider.spiders.preseeabot import PreseeabotSpider
 
 
 class PRESEEA(Corpus, CityCorpusMixin, AgeCorpusMixin,
@@ -53,6 +49,24 @@ class PRESEEA(Corpus, CityCorpusMixin, AgeCorpusMixin,
             + EducationCorpusMixin.__str__(self) + "_"\
             + "Phrase_" + self.get_search_phrase()
 
+    def set_filter(self, city: str, gender: str,
+                   age: str, education: str, phrase: str):
+        self.set_city(city)
+        self.set_gender(gender)
+        self.set_age(age)
+        self.set_education(education)
+        self.set_search_phrase(phrase)
+
+    def get_filter(self):
+        # The order is important for the spider (definition)
+        filter_dict = {'phrase': self._search_phrase}
+        filter_dict["city"] = self._city
+        filter_dict['gender'] = self._gender
+        filter_dict['education'] = self._education
+        filter_dict['age'] = self._age
+
+        return filter_dict
+
     def retrieve_phrase_data(self) -> list:
         """Retrieve phrase data with a separate process.
 
@@ -62,7 +76,10 @@ class PRESEEA(Corpus, CityCorpusMixin, AgeCorpusMixin,
                 meta: date, sample number, country
         """
         # Initialize a subprocess instance
-        attach_function = self._retrieve_phrase_data_subprocess
+        filter_dict = self.get_filter()
+        twister = ASPXTwisterClass(parameters=filter_dict,
+                                   spider=PreseeabotSpider)
+        attach_function = twister._retrieve_phrase_data_subprocess
         process_instance = ProcessHandler(attach_function)
 
         # Execute attached function on subprocess
@@ -75,84 +92,12 @@ class PRESEEA(Corpus, CityCorpusMixin, AgeCorpusMixin,
         """Get number of samples for a specific phrase.
 
         Returns:
-            [int]: Number of samples for given phrase
-                and filter
+            [int]: Number of samples for given phrase and filter
         """
-        total_list = self.retrieve_phrase_data()
-        n_total = len(total_list)
+        sample_list = self.retrieve_phrase_data()
+        n_total = len(sample_list)
 
         return n_total
-
-    def _retrieve_phrase_data_subprocess(self, queue: Queue) -> list:
-        """This method retrieves a list of phrases from an html document
-
-        Returns:
-            list: List of strings with phrases containing searched phrase
-        """
-        # Set up a crawler process to use a spider
-        runner = CrawlerRunner({
-            'USER_AGENT': "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 \
-                           (KHTML, like Gecko) Chrome/55.0.2883.75 \
-                           Safari/537.36",
-            'DOWNLOAD_TIMEOUT': 100,
-            'REDIRECT_ENABLED': False,
-            'SPIDER_MIDDLEWARES': {
-                'scrapy.spidermiddlewares.httperror.HttpErrorMiddleware': True
-            }
-        })
-
-        # Save crawled results iteratively within a list
-        results = []
-
-        # Signal process function definition
-        def crawler_results(signal, sender, item, response, spider):
-            results.append(item)
-
-        # Middleware between downloader and spider
-        dispatcher.connect(crawler_results, signal=signals.item_passed)
-        dispatcher.connect(reactor.stop, signal=signals.spider_closed)
-
-        # Apply requests from spider - Add arguments to initialize the spider
-        if self._check_filter_parameters():
-            try:
-                defered = runner.crawl(PreseeabotSpider,
-                                       self._search_phrase,
-                                       self._city,
-                                       self._gender,
-                                       self._education,
-                                       self._age)
-
-                defered.addBoth(lambda _: reactor.stop())
-
-                reactor.run()
-                queue.put(results)
-            except Exception as e:
-                queue.put(e)
-        else:
-            queue.put(None)
-
-    def _check_filter_parameters(self) -> bool:
-        """Check the given filter parameters for a POST request.
-
-        Returns:
-            bool: Return true if filter features are set, so that
-                POST request is possible
-        """
-        check_filters = True
-
-        # Check all filters for availability
-        if self._city == "":
-            check_filters = False
-        if self._gender == "":
-            check_filters = False
-        if self._education == "":
-            check_filters = False
-        if self._age == "":
-            check_filters = False
-        if self._search_phrase == "":
-            check_filters = False
-
-        return check_filters
 
     def _write_section(self, writer: csv.writer, titel: str, content: str):
         writer.writerow([titel, content])
@@ -160,12 +105,7 @@ class PRESEEA(Corpus, CityCorpusMixin, AgeCorpusMixin,
 
         return writer
 
-    def _write_meta_data(self, writer: csv.writer, meta: dict):
-        writer = self._write_section(writer, "Corpus", self._corpus_name)
-        writer = self._write_section(writer, "User", meta['Name'])
-        writer.writerow(["Code", "", "https://github.com/PaulOberm/preseeapy"])
-        writer.writerow(["Download", "", "https://test.pypi.org/project/preseeapy/"])
-
+    def _write_analysis_data(self, writer: csv.writer, data: dict):
         keys_list = list(self._feature_dict.keys())
         writer.writerow(["Filter:"])
         writer.writerow([keys_list[1], self._gender])
@@ -176,38 +116,35 @@ class PRESEEA(Corpus, CityCorpusMixin, AgeCorpusMixin,
         writer = self._write_section(writer, "Phrase", self._search_phrase)
         writer = self._write_section(writer,
                                      "Samples total",
-                                     meta['Total samples'])
+                                     data['Total samples'])
 
         # Get following verbs for 3PS_PL
-        if "Leading verbs" in meta:
-            verbs_anterior_2ps_pl = []
-            verbs_anterior_3ps_pl = []
-            for phrase in meta["Leading verbs"]:
-                if phrase["2ps_pl"] is not None:
-                    verbs_anterior_2ps_pl.append(phrase["2ps_pl"])
-                elif phrase["3ps_pl"] is not None:
-                    verbs_anterior_3ps_pl.append(phrase["3ps_pl"])
+        verbs_anterior_2ps_pl = []
+        verbs_anterior_3ps_pl = []
+        for phrase in data["Leading verbs"]:
+            if phrase["2ps_pl"] is not None:
+                verbs_anterior_2ps_pl.append(phrase["2ps_pl"])
+            elif phrase["3ps_pl"] is not None:
+                verbs_anterior_3ps_pl.append(phrase["3ps_pl"])
 
-            writer.writerow(["Leading verbs"])
-            writer.writerow(["#2PS, PL", len(verbs_anterior_2ps_pl)])
-            writer.writerow(["#3PS, PL", len(verbs_anterior_3ps_pl)])
-            len_total_1 = len(verbs_anterior_2ps_pl) + len(verbs_anterior_3ps_pl)
+        writer.writerow(["Leading verbs"])
+        writer.writerow(["#2PS, PL", len(verbs_anterior_2ps_pl)])
+        writer.writerow(["#3PS, PL", len(verbs_anterior_3ps_pl)])
+        len_total_1 = len(verbs_anterior_2ps_pl) + len(verbs_anterior_3ps_pl)
 
+        verbs_posterior_2ps_pl = []
+        verbs_posterior_3ps_pl = []
+        for phrase in data["Following verbs"]:
+            if phrase["2ps_pl"] is not None:
+                verbs_posterior_2ps_pl.append(phrase["2ps_pl"])
+            elif phrase["3ps_pl"] is not None:
+                verbs_posterior_3ps_pl.append(phrase["3ps_pl"])
 
-        if "Following verbs" in meta:
-            verbs_posterior_2ps_pl = []
-            verbs_posterior_3ps_pl = []
-            for phrase in meta["Following verbs"]:
-                if phrase["2ps_pl"] is not None:
-                    verbs_posterior_2ps_pl.append(phrase["2ps_pl"])
-                elif phrase["3ps_pl"] is not None:
-                    verbs_posterior_3ps_pl.append(phrase["3ps_pl"])
-
-            writer.writerow(["Following verbs"])
-            writer.writerow(["#2PS, PL", len(verbs_posterior_2ps_pl)])
-            writer.writerow(["#3PS, PL", len(verbs_posterior_3ps_pl)])
-            len_total_2 = len(verbs_posterior_2ps_pl) + len(verbs_posterior_3ps_pl)
-            writer.writerow(["#Verbs total", len_total_1+len_total_2])
+        writer.writerow(["Following verbs"])
+        writer.writerow(["#2PS, PL", len(verbs_posterior_2ps_pl)])
+        writer.writerow(["#3PS, PL", len(verbs_posterior_3ps_pl)])
+        len_total_2 = len(verbs_posterior_2ps_pl) + len(verbs_posterior_3ps_pl)
+        writer.writerow(["#Verbs total", len_total_1+len_total_2])
 
         return writer
 
@@ -229,7 +166,7 @@ class PRESEEA(Corpus, CityCorpusMixin, AgeCorpusMixin,
 
         return verb_list
 
-    def write_csv(self, data: list, meta: dict):
+    def write_csv(self, data: list, analysis_data: dict):
         """Write current phrases' search results into csv
 
         Args:
@@ -248,47 +185,54 @@ class PRESEEA(Corpus, CityCorpusMixin, AgeCorpusMixin,
                                 {} in crawled results!'.format(filter_key))
 
         # Write into csv file
-        file_name = "report/{}.csv".format(self.__str__())
+        file_name = "report/{}_.csv".format(self.__str__())
         if not os.path.exists(file_name.split('/')[0]):
             os.makedirs(file_name.split('/')[0])
         with open(file_name, 'w', newline='') as file:
             writer = csv.writer(file)
 
-            # Write meta data
-            writer = self._write_meta_data(writer, meta)
-            writer.writerow(["Found", len(data)])
-            writer.writerow(["\n"])
-            writer.writerow(["Index", "Sample", "Text", "Year", "Country", "Unmatch"])
+            # Write data into file
+            writer = self._write_meta_information(writer)
+            writer = self._write_analysis_data(writer, analysis_data)
+            writer = self._write_data(writer, data, analysis_data)
 
-            # Write data
-            for idx, phrase in enumerate(data):
-                # Check if PP and verbal discrepancy
-                if self._search_phrase == "vosotros ":
-                    lead_verb = meta["Leading verbs"][idx]["3ps_pl"]
-                    follow_verb = meta["Following verbs"][idx]["3ps_pl"]
-                elif self._search_phrase == "ustedes ":
-                    lead_verb = meta["Leading verbs"][idx]["2ps_pl"]
-                    follow_verb = meta["Following verbs"][idx]["2ps_pl"]
-                else:
-                    lead_verb = None
-                    follow_verb = None
+        target_name = os.getcwd() + '/' + file_name
+        return target_name
 
-                if lead_verb is not None:
-                    non_fit = "x"
-                elif follow_verb is not None:
-                    non_fit = "x"
-                else:
-                    non_fit = ""
+    def _write_data(self, writer: csv.writer, data: list, analysis_data: dict) -> csv.writer:
+        writer.writerow(["Found", len(data)])
+        writer.writerow(["\n"])
+        writer.writerow(["Index", "Sample", "Text",
+                         "Year", "Country", "Unmatch"])
 
-                # Write data 1-indexed
-                writer.writerow([idx+1,
-                                 phrase['label'],
-                                 phrase['text'],
-                                 phrase['date'],
-                                 phrase['country'],
-                                 non_fit])
+        # Write samples from data list
+        for idx, phrase in enumerate(data):
+            # Check if PP and verbal discrepancy
+            if self._search_phrase == "vosotros ":
+                lead_verb = analysis_data["Leading verbs"][idx]["3ps_pl"]
+                follow_verb = analysis_data["Following verbs"][idx]["3ps_pl"]
+            elif self._search_phrase == "ustedes ":
+                lead_verb = analysis_data["Leading verbs"][idx]["2ps_pl"]
+                follow_verb = analysis_data["Following verbs"][idx]["2ps_pl"]
+            else:
+                lead_verb = None
+                follow_verb = None
 
-        return os.getcwd() + '/' + file_name
+            if lead_verb is not None:
+                non_fit = "x"
+            elif follow_verb is not None:
+                non_fit = "x"
+            else:
+                non_fit = ""
+
+            # Write data 1-indexed
+            writer.writerow([idx+1,
+                             phrase['label'],
+                             phrase['text'],
+                             phrase['date'],
+                             phrase['country'],
+                             non_fit])
+        return writer
 
     def analyse(self, samples_list: list):
         """Analyse the given data according to basic statistical measures.
@@ -319,43 +263,22 @@ class PRESEEA(Corpus, CityCorpusMixin, AgeCorpusMixin,
                 data['Leading'][idx] = lead
                 data['Following'][idx] = follow
 
-        # Add basic meta information
-        data['Name'] = self.get_author()
-
         # Update meta information regarding verbs
         data["Leading verbs"] = self.get_verbs(data['Leading'])
         data["Following verbs"] = self.get_verbs(data['Following'])
 
         return data
 
-    def set_filter(self, city: str, gender: str,
-                   age: str, education: str, phrase: str):
-        self.set_city(city)
-        self.set_gender(gender)
-        self.set_age(age)
-        self.set_education(education)
-        self.set_search_phrase(phrase)
-
-    def get_filter(self):
-        city = 'City: {}'.format(self._city)
-        gender = 'Gender: {}'.format(self._gender)
-        age = 'Age: {}'.format(self._age)
-        education = 'Education: {}'.format(self._education)
-
-        return '{}, {}, {}, {}'.format(city, gender, age, education)
-
     def create_report(self, city: str, phrase: str):
-        """Create a .csv file as a report for the
-           phrases and their corresponding analysis
-           based on the PRESEEA corpus data for
+        """Create a .csv file as a report for the phrases and their
+           corresponding analysis based on the PRESEEA corpus data for
            the given city.
 
         Args:
             city (str): A city as feature in the corpus
-            phrase (str): A phrase which has to be found
-                in the corpus
+            phrase (str): A phrase which has to be found in the corpus
         """
-        # Define search issue with filters and phrase
+        # Define search with filters and phrase
         self.set_filter(city=city,
                         gender="all",  # "Hombre"
                         age="all",  # "Grupo 1"
@@ -370,4 +293,4 @@ class PRESEEA(Corpus, CityCorpusMixin, AgeCorpusMixin,
 
         # Write data with stats into .csv file
         self.write_csv(data=sample_list,
-                       meta=meta_data)
+                       analysis_data=meta_data)
