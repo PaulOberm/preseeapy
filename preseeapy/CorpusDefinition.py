@@ -1,3 +1,5 @@
+import csv
+
 AVAILABLE_CORPI = ['PRESEEA', 'CREA', 'COSER']
 
 
@@ -14,7 +16,17 @@ class Corpus:
 
         self._feature_dict = {}
         self._author = author
+        self._DOWNLOAD = "https://test.pypi.org/project/preseeapy/"
+        self._CODE = "https://github.com/PaulOberm/preseeapy"
         self.set_search_phrase(search_phrase)
+
+    def _write_meta_information(self, writer: csv.writer) -> csv.writer:
+        writer.writerow(["Corpus", "", self._corpus_name])
+        writer.writerow(["User", "", self._author])
+        writer.writerow(["Code", "", self._CODE])
+        writer.writerow(["Download", "", self._DOWNLOAD])
+
+        return writer
 
     def set_search_phrase(self, phrase: str):
         """Set phrase to be searched within the Corus

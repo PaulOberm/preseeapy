@@ -15,22 +15,18 @@ class PreseeabotSpider(scrapy.Spider):
     start_urls = ['https://preseea.linguas.net/Corpus.aspx']
 
     def __init__(self,
-                 phrase: str,
-                 city: str,
-                 gender: str,
-                 education: str,
-                 age: str):
+                 filter_parameters: dict):
         super().__init__()
 
         # Open PRESEEA configuration file
         with open('preseeapy/preseea.json', 'r') as file:
             self._feature_dict = json.load(file)
 
-        self._search_phrase = phrase
-        self._city_key = self.map_to_city_key(city)
-        self._gender_key = self.map_to_gender_key(gender)
-        self._education_key = self.map_to_education_key(education)
-        self._age_key = self.map_to_age_key(age)
+        self._search_phrase = filter_parameters["phrase"]
+        self._city_key = self.map_to_city_key(filter_parameters["city"])
+        self._gender_key = self.map_to_gender_key(filter_parameters["gender"])
+        self._education_key = self.map_to_education_key(filter_parameters["education"])
+        self._age_key = self.map_to_age_key(filter_parameters["age"])
 
     def map_to_city_key(self, city: str) -> str:
         """Map a city or location class to the correct key for the PRESEEA webpage

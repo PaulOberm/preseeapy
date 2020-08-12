@@ -1,6 +1,41 @@
+from .WordClassifier import WordClassifier
+
+
 class VerbClassifier():
+    gerundium_list = ['iendo']
+
     def __init__(self, word_list: list):
+        self._word_classifier = WordClassifier("")
         self.set_word_list(word_list)
+
+    def set_phrase(self, phrase: str):
+        """Set string type phrase as word list
+
+        Args:
+            phrase (str): Phrase to be set as word list
+        """
+        self._word_classifier.set_phrase(phrase)
+        word_list = self._word_classifier.get_word_list()
+        self.set_word_list(word_list)
+
+    def get_environment_verbs(self, word: str) -> (list, list):
+        """Get environmental verbs around a search phrase
+
+        Args:
+            word (str): Search phrase as word
+
+        Returns:
+            list: List of dictionaries
+        """
+        lead_words, follow_words = self._word_classifier.get_environment_words(word)
+
+        return_list = []
+        for word_list in [lead_words, follow_words]:
+            self.set_word_list(word_list)
+            classified_words = self.classify_verbs()
+            return_list.append(classified_words)
+
+        return return_list[0], return_list[1]
 
     def set_word_list(self, word_list: list):
         """Set the class instances list of words.
@@ -17,6 +52,8 @@ class VerbClassifier():
                 continue
             if (word[-1] == "?" or word[-1] == "!"):
                 word = word[:-1]
+            if (word[0] == "¿" or word[0] == "¡"):
+                word = word[1:]
 
             checked_list.append(word)
 
@@ -31,6 +68,9 @@ class VerbClassifier():
 
             is_verb_class = False
             if word in exception_list:
+                is_verb_class = False
+            elif self._word_has_ending(word, self.gerundium_list):
+                # If given word is a gerundium, no verb
                 is_verb_class = False
             else:
                 # If word ends with those endings, it belongs to that class
@@ -72,7 +112,8 @@ class VerbClassifier():
             bool: Is 1P, SG
         """
         ending_list = ['o', 'oy']
-        exception_list = [' no ', ' lo']
+        exception_list = [' no ', ' lo', 'bueno',
+                          'pero', 'cómo']
 
         return ending_list, exception_list
 
@@ -87,7 +128,7 @@ class VerbClassifier():
             bool: Is 2P, SG
         """
         ending_list = ['as', 'es']
-        exception_list = [' les ']
+        exception_list = [' les ', 'cosas', 'bases']
 
         return ending_list, exception_list
 
@@ -102,7 +143,7 @@ class VerbClassifier():
             bool: Is 3P, SG
         """
         ending_list = ['e', 'a']
-        exception_list = [' les ', ' le ', ' la ', ' las']
+        exception_list = [' les ', ' le ', ' la ', ' las', 'que', 'se', 'la']
 
         return ending_list, exception_list
 
@@ -146,7 +187,7 @@ class VerbClassifier():
         Returns:
             bool: Is 3P, PL
         """
-        ending_list = ['en', 'on', 'an']
+        ending_list = ['en', 'on', 'an', 'án']
         exception_list = ['con', 'en']
 
         return ending_list, exception_list
