@@ -282,9 +282,9 @@ class PRESEEA(Corpus, CityCorpusMixin, AgeCorpusMixin,
         # Get data via scrapy framework as API
         sample_list = self.retrieve_phrase_data()
 
-        # Get meta information from the retrieved data
-        meta_data = self.analyse(sample_list)
+        # Get analysis from the retrieved data
+        analysis_data = self.analyse(sample_list)
 
         # Write data with stats into .csv file
         self.write_csv(data=sample_list,
-                       analysis_data=meta_data)
+                       analysis_data=analysis_data)

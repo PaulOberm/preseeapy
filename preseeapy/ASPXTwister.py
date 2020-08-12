@@ -56,8 +56,11 @@ class ASPXTwisterClass():
         else:
             queue.put(None)
 
-    def set_parameters(self, parameters: dict) -> dict:
+    def set_parameters(self, parameters: dict):
         self._parameter_dict = parameters
+
+    def get_parameters(self) -> dict:
+        return self._parameter_dict
 
     def check_parameters(self):
         """Check the given filter parameters for a POST request.
