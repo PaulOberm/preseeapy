@@ -19,6 +19,14 @@ class VerbClassifier():
         self.set_word_list(word_list)
 
     def get_environment_verbs(self, word: str) -> (list, list):
+        """Get environmental verbs around a search phrase
+
+        Args:
+            word (str): Search phrase as word
+
+        Returns:
+            list: List of dictionaries
+        """
         lead_words, follow_words = self._word_classifier.get_environment_words(word)
 
         return_list = []
@@ -27,7 +35,7 @@ class VerbClassifier():
             classified_words = self.classify_verbs()
             return_list.append(classified_words)
 
-        return return_list
+        return return_list[0], return_list[1]
 
     def set_word_list(self, word_list: list):
         """Set the class instances list of words.

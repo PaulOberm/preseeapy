@@ -10,6 +10,7 @@ from .EducationCorpusMixin import EducationCorpusMixin
 from .VerbClassifier import VerbClassifier
 from .ASPXTwister import ASPXTwisterClass
 from .preseeaspider.spiders.preseeabot import PreseeabotSpider
+from .Pronoun import Pronoun
 
 
 class PRESEEA(Corpus, CityCorpusMixin, AgeCorpusMixin,
@@ -104,7 +105,7 @@ class PRESEEA(Corpus, CityCorpusMixin, AgeCorpusMixin,
 
         return writer
 
-    def _write_analysis_data(self, writer: csv.writer, data: dict):
+    def _write_analysis_verb_data(self, writer: csv.writer, data: dict):
         keys_list = list(self._feature_dict.keys())
         writer.writerow(["Filter:"])
         writer.writerow([keys_list[1], self._gender])
@@ -161,7 +162,7 @@ class PRESEEA(Corpus, CityCorpusMixin, AgeCorpusMixin,
         Returns:
             int: [description]
         """
-        words = [word[key] for word in word_list if word[key] is not None]
+        words = [word[key] for word in word_list if len(word[key]) > 0]
 
         return len(words)
 
@@ -192,7 +193,7 @@ class PRESEEA(Corpus, CityCorpusMixin, AgeCorpusMixin,
 
             # Write data into file
             writer = self._write_meta_information(writer)
-            writer = self._write_analysis_data(writer, analysis_data)
+            writer = self._write_analysis_verb_data(writer, analysis_data)
             writer = self._write_data(writer, data, analysis_data)
 
         target_name = os.getcwd() + '/' + file_name
@@ -206,34 +207,16 @@ class PRESEEA(Corpus, CityCorpusMixin, AgeCorpusMixin,
 
         # Write samples from data list
         for idx, phrase in enumerate(data):
-            # Check if PP and verbal discrepancy
-            if self._search_phrase == "vosotros ":
-                lead_verb = analysis_data["Leading verbs"][idx]["3ps_pl"]
-                follow_verb = analysis_data["Following verbs"][idx]["3ps_pl"]
-            elif self._search_phrase == "ustedes ":
-                lead_verb = analysis_data["Leading verbs"][idx]["2ps_pl"]
-                follow_verb = analysis_data["Following verbs"][idx]["2ps_pl"]
-            else:
-                lead_verb = None
-                follow_verb = None
-
-            if lead_verb is not None:
-                non_fit = "x"
-            elif follow_verb is not None:
-                non_fit = "x"
-            else:
-                non_fit = ""
-
             # Write data 1-indexed
             writer.writerow([idx+1,
                              phrase['label'],
                              phrase['text'],
                              phrase['date'],
                              phrase['country'],
-                             non_fit])
+                             analysis_data['Unmatch'][idx]])
         return writer
 
-    def analyse(self, samples_list: list):
+    def analyse_verbs(self, samples_list: list) -> dict:
         """Analyse the given data according to basic statistical measures.
            Summation of general information, which means the total amount of
            samples, regarding a city from corpus.
@@ -250,16 +233,27 @@ class PRESEEA(Corpus, CityCorpusMixin, AgeCorpusMixin,
 
         data['Leading verbs'] = [None]*len(samples_list)
         data['Following verbs'] = [None]*len(samples_list)
+        data['Unmatch'] = [None]*len(samples_list)
 
         if type(samples_list) is not list:
             Warning("No samples list introduced! City might not be available.")
         else:
             classfier = VerbClassifier("")
+            pronoun = Pronoun()
             for idx, sample in enumerate(samples_list):
                 classfier.set_phrase(sample['text'])
                 lead, follow = classfier.get_environment_verbs(self._search_phrase)
                 data['Leading verbs'][idx] = lead
                 data['Following verbs'][idx] = follow
+
+                # Get key for search phrase
+                pp_key = pronoun.get_pronoun_key(self._search_phrase)
+
+                # Check if given pronombre has no entry -> Unmatch
+                if pp_key is None or (not lead[pp_key] and not follow[pp_key]):
+                    data['Unmatch'][idx] = 'x'
+                else:
+                    data['Unmatch'][idx] = ''
 
         return data
 
@@ -283,7 +277,7 @@ class PRESEEA(Corpus, CityCorpusMixin, AgeCorpusMixin,
         sample_list = self.retrieve_phrase_data()
 
         # Get analysis from the retrieved data
-        analysis_data = self.analyse(sample_list)
+        analysis_data = self.analyse_verbs(sample_list)
 
         # Write data with stats into .csv file
         self.write_csv(data=sample_list,
